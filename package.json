@@ -9,7 +9,8 @@
     "seed": "node src/seed.js",
     "test:pricing": "node src/pricing/engine.test.js",
     "test:catalog": "node src/pricing/catalog.test.js",
-    "test": "npm run test:pricing && npm run test:catalog"
+    "test": "npm run test:pricing && npm run test:catalog && npm run test:estimate",
+    "test:estimate": "node src/pricing/customEstimate.test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

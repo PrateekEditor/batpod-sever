@@ -5,7 +5,11 @@ const DiscountSchedule = require('../models/DiscountSchedule');
 const PriceRule = require('../models/PriceRule');
 const Coupon = require('../models/Coupon');
 const Order = require('../models/Order');
+const Purchase = require('../models/Purchase');
+const QuoteRequest = require('../models/QuoteRequest');
+const PartnerKey = require('../models/PartnerKey');
 const { calculateQuote } = require('../pricing/engine');
+const { unitCost } = require('../pricing/costing');
 
 const router = express.Router();
 
@@ -74,6 +78,24 @@ router.use('/schedules', crud(DiscountSchedule, { searchFields: ['name'] }));
 router.use('/rules', crud(PriceRule, { sort: { priority: 1 }, searchFields: ['name'] }));
 router.use('/coupons', crud(Coupon, { searchFields: ['code', 'description'] }));
 router.use('/orders', crud(Order, { searchFields: ['reference', 'customer.name', 'customer.phone'] }));
+router.use('/purchases', crud(Purchase, { sort: { purchasedOn: -1 }, searchFields: ['name', 'notes'] }));
+router.use('/requests', crud(QuoteRequest, { searchFields: ['reference', 'contact.name', 'contact.email'] }));
+router.use('/partner-keys', crud(PartnerKey, { searchFields: ['label', 'contactEmail'] }));
+
+/** POST /api/admin/partner-keys/:id — not needed; keys are generated here instead. */
+router.post('/generate-key', async (req, res, next) => {
+  try {
+    const doc = await PartnerKey.create({
+      label: req.body.label || 'Unnamed partner',
+      contactEmail: req.body.contactEmail || '',
+      key: PartnerKey.generate(),
+      monthlyLimit: Number(req.body.monthlyLimit) || 1000,
+    });
+    res.status(201).json(doc);
+  } catch (err) {
+    next(err);
+  }
+});
 
 /**
  * PATCH /api/admin/products/:id/stock  — the one action you'll use daily,
@@ -134,6 +156,108 @@ router.post('/quote-test', async (req, res, next) => {
       quote,
       rulesConsidered: rules.map((r) => ({ id: r._id, name: r.name, scope: r.scope, priority: r.priority, active: r.active })),
       unmatchedSlugs: slugs.filter((s) => !bySlug.has(s)),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/admin/payback?assumedMonthlyProfit=&lookbackDays=&hypotheticalCost=
+ *
+ * Answers "is this worth buying". Works out what the shop actually earns per
+ * month — real revenue minus what those products cost to make — and divides
+ * each purchase by it.
+ *
+ * With no order history yet the real figure is zero, which is honest rather
+ * than useless: pass `assumedMonthlyProfit` and it models your guess instead,
+ * clearly labelled as a guess.
+ */
+router.get('/payback', async (req, res, next) => {
+  try {
+    const lookbackDays = Math.max(7, Number(req.query.lookbackDays) || 90);
+    const since = new Date(Date.now() - lookbackDays * 86400000);
+
+    const [orders, products, purchases] = await Promise.all([
+      Order.find({ status: { $nin: ['cancelled', 'draft'] }, createdAt: { $gte: since } }).lean(),
+      Product.find().lean(),
+      Purchase.find({ retired: false }).sort({ purchasedOn: -1 }).lean(),
+    ]);
+
+    const costBySku = new Map(products.map((p) => [p.sku, unitCost(p)]));
+
+    let revenue = 0;
+    let cogs = 0;
+    for (const o of orders) {
+      revenue += (o.total || 0) - (o.shipping || 0);
+      for (const l of o.lines || []) {
+        cogs += (costBySku.get(l.sku) || 0) * (l.quantity || 0);
+      }
+    }
+
+    const months = lookbackDays / 30.44;
+    const actualMonthlyProfit = orders.length ? Math.round((revenue - cogs) / months) : 0;
+
+    const assumed = Number(req.query.assumedMonthlyProfit) || 0;
+    const usingAssumption = actualMonthlyProfit <= 0 && assumed > 0;
+    const grossMonthlyProfit = usingAssumption ? assumed : actualMonthlyProfit;
+
+    // Subscriptions eat into what is left to pay off the one-off purchases.
+    const recurringTotal = purchases.reduce((s, p) => s + (p.recurringMonthly || 0), 0);
+    const netMonthlyProfit = grossMonthlyProfit - recurringTotal;
+
+    const monthsToCover = (cost) => {
+      if (netMonthlyProfit <= 0) return null;
+      return Math.round((cost / netMonthlyProfit) * 10) / 10;
+    };
+
+    const now = Date.now();
+    const rows = purchases.map((p) => {
+      const elapsedMonths = Math.max(0, (now - new Date(p.purchasedOn).getTime()) / (30.44 * 86400000));
+      const needed = monthsToCover(p.cost);
+      const recoveredPercent =
+        needed === null ? null : Math.min(100, Math.round((elapsedMonths / needed) * 100));
+      const remainingMonths = needed === null ? null : Math.max(0, Math.round((needed - elapsedMonths) * 10) / 10);
+
+      return {
+        _id: p._id,
+        name: p.name,
+        category: p.category,
+        cost: p.cost,
+        purchasedOn: p.purchasedOn,
+        recurringMonthly: p.recurringMonthly || 0,
+        expectedMonthlyBenefit: p.expectedMonthlyBenefit || 0,
+        monthsToCover: needed,
+        elapsedMonths: Math.round(elapsedMonths * 10) / 10,
+        remainingMonths,
+        recoveredPercent,
+        paidBack: recoveredPercent !== null && recoveredPercent >= 100,
+      };
+    });
+
+    const totalInvested = purchases.reduce((s, p) => s + p.cost, 0);
+
+    res.json({
+      basis: {
+        lookbackDays,
+        orderCount: orders.length,
+        revenue: Math.round(revenue),
+        estimatedCogs: Math.round(cogs),
+        actualMonthlyProfit,
+        usingAssumption,
+        assumedMonthlyProfit: assumed,
+        recurringMonthly: recurringTotal,
+        netMonthlyProfit,
+      },
+      totalInvested,
+      totalMonthsToCoverEverything: monthsToCover(totalInvested),
+      purchases: rows,
+      hypothetical: req.query.hypotheticalCost
+        ? {
+            cost: Number(req.query.hypotheticalCost),
+            monthsToCover: monthsToCover(Number(req.query.hypotheticalCost)),
+          }
+        : null,
     });
   } catch (err) {
     next(err);

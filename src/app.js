@@ -7,6 +7,7 @@ const adminAuth = require('./middleware/adminAuth');
 const catalogRoutes = require('./routes/catalog');
 const quoteRoutes = require('./routes/quote');
 const orderRoutes = require('./routes/orders');
+const customRoutes = require('./routes/custom');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
@@ -52,6 +53,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api', catalogRoutes);
 app.use('/api', quoteRoutes);
 app.use('/api', orderRoutes);
+app.use('/api', customRoutes);
 app.use('/api/admin', adminAuth, adminRoutes);
 
 app.use((req, res) => {

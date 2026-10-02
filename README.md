@@ -104,3 +104,36 @@ Run the seed against the production database once, from your own machine, with `
 **Cold starts.** The first request after a quiet period takes a second or two while the function boots and connects to Atlas. `src/db.js` caches the connection so subsequent requests reuse it. Do not remove that caching — without it, a busy day exhausts Atlas's connection limit.
 
 **Prices come from the server, always.** `POST /api/orders` ignores any price in the request body and recalculates from the slugs and quantities. A tampered cart cannot buy anything cheaply.
+
+---
+
+## Custom print estimator
+
+A second product sitting on the same server: someone brings their own model and gets a price.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/custom/options` | Every valid dropdown value, file types, size cap. A partner's UI starts here so it never offers something the engine rejects |
+| POST | `/api/custom/estimate` | Stateless. Nothing saved, nothing emailed — call it on every keystroke |
+| POST | `/api/custom/requests` | Customer wants it made. Recalculates server-side, stores the lead |
+| GET | `/api/custom/requests/:reference` | Customer checks back |
+
+The estimator lives in `src/pricing/customEstimate.js` and is a pure function with 20 tests (`npm run test:estimate`).
+
+**It deliberately over-estimates.** Nobody can price a mesh they have not sliced. Quoting low and asking for more later is the fastest way to lose a customer, so the quote is a range carrying ~18% headroom, presented as a ceiling that usually comes down.
+
+**The file is never uploaded.** Only its name, size and type are sent. Accepting real uploads means storage, virus scanning and a privacy policy, none of which exist yet — the customer emails the model once there is a price they like.
+
+**The mesh path is already in the contract.** Pass `mesh: { volumeCm3 }` instead of `size` and it uses real geometry. When STL parsing is added, the request and response shapes do not change — which matters because other people will have integrated against them by then.
+
+### Partner access
+
+Other print shops can call the estimator with an `x-api-key` issued from the admin. Until `REQUIRE_PARTNER_KEY=true` the endpoint is open. Issue keys first, flip the flag second, or you break your own website while nobody holds a key.
+
+## Payback
+
+`GET /api/admin/payback` answers "is this worth buying". It works out what the shop actually earns per month — real revenue minus what those products cost to make, using the same costing assumptions as everything else — and divides each purchase by it.
+
+With no orders yet the real figure is zero, which is honest rather than useless: pass `assumedMonthlyProfit` and it models your guess instead, flagged as a guess in the response.
+
+Query params: `assumedMonthlyProfit`, `lookbackDays` (default 90), `hypotheticalCost`.
