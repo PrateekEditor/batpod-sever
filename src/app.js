@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
-const { connectDB } = require('./db');
+const { connectDB, mongoose } = require('./db');
 const adminAuth = require('./middleware/adminAuth');
 const catalogRoutes = require('./routes/catalog');
 const quoteRoutes = require('./routes/quote');
@@ -35,6 +35,41 @@ app.use(
   })
 );
 
+/**
+ * Service index and liveness.
+ *
+ * These two sit BEFORE the database middleware on purpose: they are what you
+ * reach for when something is wrong, and a status page that goes down with the
+ * database tells you nothing you did not already know. They always answer, and
+ * they report the database state rather than failing because of it.
+ */
+const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+const dbState = () => dbStates[mongoose.connection.readyState] || 'unknown';
+
+app.get('/', (_req, res) => {
+  res.json({
+    service: 'batpod-server',
+    description:
+      'API and CPQ pricing engine for the Batpod Labs shop. There is no website here \u2014 the shop is a separate deployment.',
+    database: dbState(),
+    endpoints: {
+      health: '/api/health',
+      categories: '/api/categories',
+      products: '/api/products',
+      product: '/api/products/:slug',
+      quote: 'POST /api/quote',
+      orders: 'POST /api/orders',
+      customOptions: '/api/custom/options',
+      customEstimate: 'POST /api/custom/estimate',
+      admin: '/api/admin/* (needs an x-admin-key header)',
+    },
+  });
+});
+
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, service: 'batpod-server', database: dbState(), time: new Date().toISOString() });
+});
+
 // Every request needs the database; connecting here keeps it out of each route.
 app.use(async (_req, res, next) => {
   try {
@@ -44,10 +79,6 @@ app.use(async (_req, res, next) => {
     console.error('DB connection failed:', err.message);
     res.status(503).json({ error: 'Database unavailable. Check MONGODB_URI and the Atlas IP allowlist.' });
   }
-});
-
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'batpod-server', time: new Date().toISOString() });
 });
 
 app.use('/api', catalogRoutes);
