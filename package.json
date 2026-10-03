@@ -5,12 +5,14 @@
   "description": "API + CPQ pricing engine for the Batpod Labs shop",
   "main": "api/index.js",
   "scripts": {
-    "dev": "node src/dev.js",
+    "dev": "npm test --silent && node --watch src/dev.js",
     "seed": "node src/seed.js",
     "test:pricing": "node src/pricing/engine.test.js",
     "test:catalog": "node src/pricing/catalog.test.js",
     "test": "npm run test:pricing && npm run test:catalog && npm run test:estimate",
-    "test:estimate": "node src/pricing/customEstimate.test.js"
+    "test:estimate": "node src/pricing/customEstimate.test.js",
+    "dev:fast": "node --watch src/dev.js",
+    "start": "node src/dev.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
