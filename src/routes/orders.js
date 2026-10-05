@@ -5,9 +5,13 @@ const PriceRule = require('../models/PriceRule');
 const Coupon = require('../models/Coupon');
 const Order = require('../models/Order');
 const { calculateQuote } = require('../pricing/engine');
+const { optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 const DEFAULT_SHIPPING = Number(process.env.DEFAULT_SHIPPING_FEE || 60);
+
+/** Anything else in the body is ignored — a customer cannot label their own order "amazon". */
+const ALLOWED_CHANNELS = ['website', 'instagram', 'youtube', 'whatsapp', 'bike-meet', 'amazon', 'etsy', 'partner-api', 'other'];
 
 /**
  * POST /api/orders
@@ -21,9 +25,9 @@ const DEFAULT_SHIPPING = Number(process.env.DEFAULT_SHIPPING_FEE || 60);
  * recomputed server-side from the slugs and quantities. A client that posts
  * `"total": 1` gets ignored.
  */
-router.post('/orders', async (req, res, next) => {
+router.post('/orders', optionalAuth, async (req, res, next) => {
   try {
-    const { customer = {}, lines: rawLines = [], couponCode = '', notes = '' } = req.body;
+    const { customer = {}, lines: rawLines = [], couponCode = '', notes = '', channel, channelDetail = '' } = req.body;
 
     if (!Array.isArray(rawLines) || rawLines.length === 0) {
       return res.status(400).json({ error: 'An order needs at least one line.' });
@@ -55,6 +59,10 @@ router.post('/orders', async (req, res, next) => {
     const order = await Order.create({
       reference: Order.nextReference(),
       status: 'draft',
+      // Signed in? Tie the order to the account so it shows in their history.
+      user: req.user ? req.user._id : null,
+      channel: ALLOWED_CHANNELS.includes(channel) ? channel : 'website',
+      channelDetail: String(channelDetail).slice(0, 120),
       customer,
       lines: quote.lines.map((l) => ({
         sku: l.sku,

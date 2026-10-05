@@ -9,15 +9,18 @@
     "seed": "node src/seed.js",
     "test:pricing": "node src/pricing/engine.test.js",
     "test:catalog": "node src/pricing/catalog.test.js",
-    "test": "npm run test:pricing && npm run test:catalog && npm run test:estimate",
+    "test": "npm run test:pricing && npm run test:catalog && npm run test:estimate && npm run test:recommend",
     "test:estimate": "node src/pricing/customEstimate.test.js",
     "dev:fast": "node --watch src/dev.js",
-    "start": "node src/dev.js"
+    "start": "node src/dev.js",
+    "test:recommend": "node src/recommend.test.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.9.5"
   }
 }

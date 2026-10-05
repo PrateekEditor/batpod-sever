@@ -8,6 +8,7 @@ const catalogRoutes = require('./routes/catalog');
 const quoteRoutes = require('./routes/quote');
 const orderRoutes = require('./routes/orders');
 const customRoutes = require('./routes/custom');
+const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
@@ -85,6 +86,7 @@ app.use('/api', catalogRoutes);
 app.use('/api', quoteRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', customRoutes);
+app.use('/api', authRoutes);
 app.use('/api/admin', adminAuth, adminRoutes);
 
 app.use((req, res) => {

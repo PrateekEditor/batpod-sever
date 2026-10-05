@@ -202,4 +202,41 @@ const coupons = [
   },
 ];
 
-module.exports = { categories, products, schedules, rules, coupons };
+/**
+ * Three demo accounts, so the recommendation rail and the account pages have
+ * something to show before a real customer exists. Obviously fake addresses on
+ * a domain you control, and a shared throwaway password.
+ *
+ * Delete them before you take real orders: `npm run seed -- --no-users`
+ * skips them, and the admin's customer list shows which are demo accounts.
+ */
+const DEMO_PASSWORD = 'batpod-demo-2026';
+
+const users = [
+  {
+    email: 'demo.rider@batpodlabs.test',
+    name: 'Demo Rider',
+    interests: ['biker'],
+    phone: '9000000001',
+    address: { line1: '1 Test Lane', city: 'Pune', pincode: '411001' },
+    note: 'Only cares about bike gear — the rail should be almost all biker.',
+  },
+  {
+    email: 'demo.desk@batpodlabs.test',
+    name: 'Demo Desk',
+    interests: ['tabletop', 'daily'],
+    phone: '9000000002',
+    address: { line1: '2 Test Lane', city: 'Mumbai', pincode: '400001' },
+    note: 'Two interests — the rail should mix both ranges rather than pick one.',
+  },
+  {
+    email: 'demo.new@batpodlabs.test',
+    name: 'Demo Newcomer',
+    interests: [],
+    phone: '9000000003',
+    address: { line1: '', city: '', pincode: '' },
+    note: 'No interests and no orders — should fall back to best sellers, labelled as such.',
+  },
+];
+
+module.exports = { categories, products, schedules, rules, coupons, users, DEMO_PASSWORD };

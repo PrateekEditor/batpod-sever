@@ -15,7 +15,8 @@ const Product = require('./models/Product');
 const DiscountSchedule = require('./models/DiscountSchedule');
 const PriceRule = require('./models/PriceRule');
 const Coupon = require('./models/Coupon');
-const { categories, products, schedules, rules, coupons } = require('./seed-data');
+const User = require('./models/User');
+const { categories, products, schedules, rules, coupons, users, DEMO_PASSWORD } = require('./seed-data');
 
 async function upsert(Model, docs, key) {
   let created = 0;
@@ -44,6 +45,7 @@ async function run() {
       DiscountSchedule.deleteMany({}),
       PriceRule.deleteMany({}),
       Coupon.deleteMany({}),
+      User.deleteMany({ email: /@batpodlabs\.test$/ }),
     ]);
     console.log('Collections cleared (--reset).');
   }
@@ -69,6 +71,25 @@ async function run() {
 
   const co = await upsert(Coupon, coupons, 'code');
   console.log(`Coupons: ${co.created} created, ${co.updated} already there`);
+
+  if (process.argv.includes('--no-users')) {
+    console.log('Demo users: skipped (--no-users)');
+  } else {
+    let made = 0;
+    const hash = await User.hashPassword(DEMO_PASSWORD);
+    for (const u of users) {
+      if (await User.findOne({ email: u.email })) continue;
+      const { note, ...fields } = u;
+      await User.create({ ...fields, passwordHash: hash });
+      made += 1;
+    }
+    console.log(`Demo users: ${made} created, ${users.length - made} already there`);
+    if (made > 0) {
+      console.log(`  sign in with any of these and the password: ${DEMO_PASSWORD}`);
+      for (const u of users) console.log(`  ${u.email.padEnd(32)} ${u.note}`);
+      console.log('  These are test accounts. Delete them before you take real orders.');
+    }
+  }
 
   await mongoose.connection.close();
   console.log('\nDone. Start the server with `npm run dev`.');

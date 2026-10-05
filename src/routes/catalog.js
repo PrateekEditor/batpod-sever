@@ -1,6 +1,9 @@
 const express = require('express');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const Order = require('../models/Order');
+const { optionalAuth } = require('../middleware/auth');
+const { recommendProducts } = require('../recommend');
 
 const router = express.Router();
 
@@ -118,6 +121,60 @@ router.post('/products/by-slugs', async (req, res, next) => {
     // preserve the order the caller asked for
     const bySlug = new Map(items.map((i) => [i.slug, i]));
     res.json(slugs.map((s) => bySlug.get(s)).filter(Boolean));
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/recommendations?recent=slug,slug&limit=6&exclude=slug
+ *
+ * Blends what they told us at signup, what they have bought, and what they
+ * have just been looking at. Works signed out — recently-viewed comes from the
+ * browser and is passed in the query string, so no account is needed for the
+ * rail to be useful.
+ *
+ * The response says which signals it used, and the storefront shows that,
+ * because "recommended for you" with no explanation is just a shelf.
+ */
+router.get('/recommendations', optionalAuth, async (req, res, next) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 6, 12);
+    const recentSlugs = String(req.query.recent || '')
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+      .slice(0, 8);
+    const excludeSlugs = String(req.query.exclude || '')
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+
+    const [products, pastOrders, salesRows] = await Promise.all([
+      Product.find({ active: true }).lean({ virtuals: true }),
+      req.user
+        ? Order.find({ user: req.user._id, status: { $ne: 'cancelled' } }).select('lines.slug').lean()
+        : Promise.resolve([]),
+      Order.aggregate([
+        { $match: { status: { $nin: ['cancelled', 'draft'] } } },
+        { $unwind: '$lines' },
+        { $group: { _id: '$lines.slug', units: { $sum: '$lines.quantity' } } },
+      ]),
+    ]);
+
+    const salesBySlug = new Map(salesRows.map((r) => [r._id, r.units]));
+
+    res.json(
+      recommendProducts({
+        products,
+        user: req.user ? { interests: req.user.interests } : null,
+        pastOrders,
+        recentSlugs,
+        salesBySlug,
+        limit,
+        excludeSlugs,
+      })
+    );
   } catch (err) {
     next(err);
   }

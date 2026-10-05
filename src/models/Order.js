@@ -22,6 +22,24 @@ const OrderLineSchema = new mongoose.Schema(
 const OrderSchema = new mongoose.Schema(
   {
     reference: { type: String, required: true, unique: true },
+
+    /** Set when the buyer was signed in. Guest orders leave it null. */
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
+
+    /**
+     * Where the order came from. Marketplace orders arrive with their own
+     * deadlines and penalties, so knowing the channel is what lets you decide
+     * which plate to print first.
+     */
+    channel: {
+      type: String,
+      enum: ['website', 'instagram', 'youtube', 'whatsapp', 'bike-meet', 'amazon', 'etsy', 'partner-api', 'other'],
+      default: 'website',
+      index: true,
+    },
+    /** Free text for the specific source: a video title, an event name, a partner. */
+    channelDetail: { type: String, default: '' },
+
     status: {
       type: String,
       enum: ['draft', 'placed', 'printing', 'shipped', 'delivered', 'cancelled'],

@@ -8,6 +8,7 @@ const Order = require('../models/Order');
 const Purchase = require('../models/Purchase');
 const QuoteRequest = require('../models/QuoteRequest');
 const PartnerKey = require('../models/PartnerKey');
+const User = require('../models/User');
 const { calculateQuote } = require('../pricing/engine');
 const { unitCost } = require('../pricing/costing');
 
@@ -24,6 +25,8 @@ function crud(Model, { sort = { createdAt: -1 }, searchFields = [] } = {}) {
         filter.$or = searchFields.map((f) => ({ [f]: new RegExp(String(req.query.q), 'i') }));
       }
       if (req.query.category) filter.categorySlug = String(req.query.category);
+      if (req.query.channel) filter.channel = String(req.query.channel);
+      if (req.query.status) filter.status = String(req.query.status);
       res.json(await Model.find(filter).sort(sort).limit(500).lean({ virtuals: true }));
     } catch (err) {
       next(err);
@@ -81,6 +84,36 @@ router.use('/orders', crud(Order, { searchFields: ['reference', 'customer.name',
 router.use('/purchases', crud(Purchase, { sort: { purchasedOn: -1 }, searchFields: ['name', 'notes'] }));
 router.use('/requests', crud(QuoteRequest, { searchFields: ['reference', 'contact.name', 'contact.email'] }));
 router.use('/partner-keys', crud(PartnerKey, { searchFields: ['label', 'contactEmail'] }));
+/**
+ * Customers are READ ONLY here, deliberately.
+ *
+ * The generic CRUD above would happily accept a PUT with a plaintext
+ * `passwordHash`, and store it. Password changes belong to the account owner
+ * through /api/auth, not to an admin form.
+ */
+router.get('/users', async (req, res, next) => {
+  try {
+    const filter = req.query.q
+      ? { $or: [{ email: new RegExp(String(req.query.q), 'i') }, { name: new RegExp(String(req.query.q), 'i') }] }
+      : {};
+    const users = await User.find(filter).sort({ createdAt: -1 }).limit(200).lean();
+    const counts = await Order.aggregate([
+      { $match: { user: { $ne: null } } },
+      { $group: { _id: '$user', orders: { $sum: 1 }, spent: { $sum: '$total' } } },
+    ]);
+    const byUser = new Map(counts.map((c) => [String(c._id), c]));
+    res.json(
+      users.map((u) => {
+        const c = byUser.get(String(u._id)) || { orders: 0, spent: 0 };
+        // passwordHash is select:false, so it is never in `u` — but be explicit.
+        delete u.passwordHash;
+        return { ...u, orderCount: c.orders, totalSpent: c.spent };
+      })
+    );
+  } catch (err) {
+    next(err);
+  }
+});
 
 /** POST /api/admin/partner-keys/:id — not needed; keys are generated here instead. */
 router.post('/generate-key', async (req, res, next) => {
@@ -267,7 +300,7 @@ router.get('/payback', async (req, res, next) => {
 /** GET /api/admin/dashboard — the numbers worth seeing on open. */
 router.get('/dashboard', async (_req, res, next) => {
   try {
-    const [productCount, lowStock, activeRules, activeCoupons, recentOrders, revenue] = await Promise.all([
+    const [productCount, lowStock, activeRules, activeCoupons, recentOrders, revenue, byChannel, customerCount] = await Promise.all([
       Product.countDocuments({ active: true }),
       Product.find({ active: true, madeToOrder: false, stockOnHand: { $lte: 3 } })
         .select('name sku stockOnHand')
@@ -281,6 +314,14 @@ router.get('/dashboard', async (_req, res, next) => {
         { $match: { status: { $nin: ['cancelled', 'draft'] } } },
         { $group: { _id: null, total: { $sum: '$total' }, count: { $sum: 1 } } },
       ]),
+      // Where orders come from, and how much each channel is worth. Useful for
+      // deciding which plate to print first and which channel to feed.
+      Order.aggregate([
+        { $match: { status: { $nin: ['cancelled'] } } },
+        { $group: { _id: '$channel', count: { $sum: 1 }, revenue: { $sum: '$total' } } },
+        { $sort: { count: -1 } },
+      ]),
+      User.countDocuments(),
     ]);
 
     res.json({
@@ -291,6 +332,8 @@ router.get('/dashboard', async (_req, res, next) => {
       recentOrders,
       revenue: revenue[0] ? revenue[0].total : 0,
       orderCount: revenue[0] ? revenue[0].count : 0,
+      customerCount,
+      byChannel: byChannel.map((c) => ({ channel: c._id || 'website', count: c.count, revenue: c.revenue })),
     });
   } catch (err) {
     next(err);
