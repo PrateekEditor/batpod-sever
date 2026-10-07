@@ -1,5 +1,9 @@
 # batpod-server
 
+**Live API:** https://batpod-sever.vercel.app
+
+Health check: [/api/health](https://batpod-sever.vercel.app/api/health)
+
 The API and the pricing engine. The shop and the admin both talk to this and nothing else — there is one database, one price calculation, one source of truth.
 
 ## What's inside
