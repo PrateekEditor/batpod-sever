@@ -38,6 +38,7 @@ const products = [
     shortDescription: 'Two-tone silhouette keyring, printed in matte black with a contrast base.',
     description: 'A clean side profile of the bike, printed in two colours on the AMS so there is no paint to chip. Fits a standard split ring. Prints in about 35 minutes, which is why it can stay cheap.',
     filamentGrams: 18, printHours: 1, handsOnMinutes: 9, stockOnHand: 24, featured: true, kitEligible: true, sortOrder: 1,
+    footprintMm: { x: 72, y: 30 }, heightMm: 5, printMinutes: 35, colours: ['matte-black', 'gold'], supportsRequired: false,
   },
   {
     sku: 'BP-BK-002', slug: 'matte-helmet-wall-hook', name: 'Matte Helmet Wall Hook',
@@ -45,6 +46,7 @@ const products = [
     shortDescription: 'Wall hook shaped to hold a full-face helmet without creasing the liner.',
     description: 'A wide saddle spreads the weight so the helmet liner keeps its shape. Takes two screws, holds a full-face comfortably. Printed solid at 40% infill.',
     filamentGrams: 60, printHours: 4, handsOnMinutes: 15, stockOnHand: 6, kitEligible: false, sortOrder: 2,
+    footprintMm: { x: 112, y: 86 }, heightMm: 58, printMinutes: 240, colours: ['matte-black'], supportsRequired: true,
   },
   {
     sku: 'BP-BK-003', slug: 'custom-bike-nameplate', name: 'Custom Bike Nameplate',
@@ -52,6 +54,7 @@ const products = [
     shortDescription: 'Your name or registration, printed as a raised two-colour plate.',
     description: 'Send the text at checkout and it gets printed as raised lettering in a contrast colour. Made to order, so allow a few days.',
     filamentGrams: 80, printHours: 5, handsOnMinutes: 27, stockOnHand: 0, madeToOrder: true, leadTimeDays: 5, sortOrder: 3,
+    footprintMm: { x: 180, y: 62 }, heightMm: 10, printMinutes: 300, colours: ['matte-black', 'white'], supportsRequired: false,
   },
   {
     sku: 'BP-BK-004', slug: 'number-plate-keyring', name: 'Number Plate Keyring',
@@ -59,6 +62,7 @@ const products = [
     shortDescription: 'Miniature of your own registration plate, on a keyring.',
     description: 'The plate everyone photographs, shrunk to pocket size. Two-colour print, your registration in raised black on white.',
     filamentGrams: 22, printHours: 1.3, handsOnMinutes: 12, stockOnHand: 0, madeToOrder: true, leadTimeDays: 4, kitEligible: true, sortOrder: 4,
+    footprintMm: { x: 56, y: 28 }, heightMm: 5, printMinutes: 78, colours: ['white', 'matte-black'], supportsRequired: false,
   },
 
   // --- Tabletop ------------------------------------------------------------
@@ -68,6 +72,7 @@ const products = [
     shortDescription: 'Multi-part desk model, assembled and finished by hand.',
     description: 'Printed across several plates, cleaned up and assembled here. The centrepiece of the range — slow to make, which is why there is never much stock.',
     filamentGrams: 150, printHours: 9, handsOnMinutes: 48, stockOnHand: 3, featured: true, sortOrder: 1,
+    footprintMm: { x: 148, y: 58 }, heightMm: 82, printMinutes: 540, colours: ['matte-black', 'silver', 'red'], supportsRequired: true,
   },
   {
     sku: 'BP-TT-002', slug: 'articulated-flexi-dragon', name: 'Articulated Flexi Dragon',
@@ -75,6 +80,7 @@ const products = [
     shortDescription: 'Prints in one piece, every joint moves, nothing to assemble.',
     description: 'Comes off the printer already articulated — no glue, no pins. The fidget toy that sells itself when someone picks it up.',
     filamentGrams: 45, printHours: 3, handsOnMinutes: 18, stockOnHand: 11, featured: true, kitEligible: true, sortOrder: 2,
+    footprintMm: { x: 165, y: 70 }, heightMm: 32, printMinutes: 180, colours: ['teal'], supportsRequired: false,
   },
   {
     sku: 'BP-TT-003', slug: 'hex-dice-tower', name: 'Hex Dice Tower',
@@ -82,6 +88,7 @@ const products = [
     shortDescription: 'Collapsible dice tower with internal baffles.',
     description: 'Internal baffles randomise the roll properly. Packs flat between game nights.',
     filamentGrams: 95, printHours: 6, handsOnMinutes: 22, stockOnHand: 4, sortOrder: 3,
+    footprintMm: { x: 92, y: 80 }, heightMm: 165, printMinutes: 360, colours: ['matte-black', 'gold'], supportsRequired: true,
   },
   {
     sku: 'BP-TT-004', slug: 'desk-caddy-pen-key', name: 'Desk Caddy for Pens & Keys',
@@ -89,6 +96,7 @@ const products = [
     shortDescription: 'Two-compartment caddy with a slot sized for a bike key fob.',
     description: 'One well for pens, one shallow tray for keys and coins, with a cut-out that actually fits a bike key fob.',
     filamentGrams: 70, printHours: 4.5, handsOnMinutes: 14, stockOnHand: 8, kitEligible: true, sortOrder: 4,
+    footprintMm: { x: 120, y: 95 }, heightMm: 70, printMinutes: 270, colours: ['grey'], supportsRequired: false,
   },
 
   // --- Daily Fixes ---------------------------------------------------------
@@ -98,6 +106,7 @@ const products = [
     shortDescription: 'Six adhesive-backed clips in three sizes.',
     description: 'Three sizes so charger, earphone and data cables each get the right grip. Adhesive pads included.',
     filamentGrams: 24, printHours: 1.5, handsOnMinutes: 10, stockOnHand: 30, kitEligible: true, sortOrder: 1,
+    footprintMm: { x: 108, y: 36 }, heightMm: 12, printMinutes: 90, colours: ['matte-black'], supportsRequired: false,
   },
   {
     sku: 'BP-DL-002', slug: 'under-desk-headphone-hook', name: 'Under-Desk Headphone Hook',
@@ -105,6 +114,7 @@ const products = [
     shortDescription: 'Clamps under any desk edge, no screws, no adhesive.',
     description: 'Friction-fit to the desk edge, so nothing is drilled and nothing peels off in summer. Holds a full-size pair.',
     filamentGrams: 28, printHours: 1.8, handsOnMinutes: 9, stockOnHand: 18, kitEligible: true, sortOrder: 2,
+    footprintMm: { x: 86, y: 64 }, heightMm: 38, printMinutes: 108, colours: ['matte-black'], supportsRequired: true,
   },
   {
     sku: 'BP-DL-003', slug: 'self-watering-mini-planter', name: 'Self-Watering Mini Planter',
@@ -112,6 +122,7 @@ const products = [
     shortDescription: 'Two-part planter with a reservoir that lasts about a week.',
     description: 'The inner pot wicks from a reservoir below, so a desk plant survives a weekend away.',
     filamentGrams: 52, printHours: 3.4, handsOnMinutes: 12, stockOnHand: 9, sortOrder: 3,
+    footprintMm: { x: 96, y: 96 }, heightMm: 105, printMinutes: 204, colours: ['white', 'teal'], supportsRequired: false,
   },
   {
     sku: 'BP-DL-004', slug: 'bottle-opener-keyring', name: 'Bottle Opener Keyring',
@@ -119,6 +130,7 @@ const products = [
     shortDescription: 'Printed in PETG so it actually survives being used.',
     description: 'PETG rather than PLA, because a PLA opener snaps on the third bottle. Slim enough to live on a keyring.',
     filamentGrams: 20, printHours: 1.2, handsOnMinutes: 8, stockOnHand: 22, kitEligible: true, sortOrder: 4,
+    footprintMm: { x: 64, y: 26 }, heightMm: 6, printMinutes: 72, colours: ['silver'], supportsRequired: false,
   },
 ];
 
@@ -239,4 +251,57 @@ const users = [
   },
 ];
 
-module.exports = { categories, products, schedules, rules, coupons, users, DEMO_PASSWORD };
+
+/**
+ * Demo orders, so the plate planner has a queue to work with before the first
+ * real customer arrives.
+ *
+ * `daysAgo` backdates the order, which is what drives the ageing half of the
+ * urgency score. The mix is deliberate: marketplace orders with deadlines, an
+ * old website order that has been waiting too long, and a large multi-unit
+ * line that will not fit on one plate with everything else.
+ */
+const demoOrders = [
+  {
+    ref: 'BP-DEMO-1001', channel: 'amazon', channelDetail: 'FBM order 402-7781', status: 'placed', daysAgo: 1,
+    customer: { name: 'A. Marketplace Buyer', phone: '+91 90000 00001', city: 'Mumbai', pincode: '400001' },
+    lines: [{ slug: 'dominar-silhouette-keychain', quantity: 4 }, { slug: 'bottle-opener-keyring', quantity: 2 }],
+  },
+  {
+    ref: 'BP-DEMO-1002', channel: 'etsy', channelDetail: 'Etsy #2290114', status: 'placed', daysAgo: 2,
+    customer: { name: 'J. Etsy Buyer', phone: '+91 90000 00002', city: 'Bengaluru', pincode: '560001' },
+    lines: [{ slug: 'articulated-flexi-dragon', quantity: 2 }],
+  },
+  {
+    ref: 'BP-DEMO-1003', channel: 'youtube', channelDetail: 'Dominar build video', status: 'placed', daysAgo: 6,
+    customer: { name: 'R. Subscriber', phone: '+91 90000 00003', city: 'Pune', pincode: '411001' },
+    lines: [{ slug: 'matte-helmet-wall-hook', quantity: 1 }, { slug: 'cable-clip-set-six', quantity: 1 }],
+  },
+  {
+    ref: 'BP-DEMO-1004', channel: 'instagram', channelDetail: 'Reel comment', status: 'printing', daysAgo: 3,
+    customer: { name: 'S. Follower', phone: '+91 90000 00004', city: 'Pune', pincode: '411014' },
+    lines: [{ slug: 'number-plate-keyring', quantity: 3 }],
+  },
+  {
+    ref: 'BP-DEMO-1005', channel: 'website', channelDetail: '', status: 'placed', daysAgo: 9,
+    customer: { name: 'M. Patient Customer', phone: '+91 90000 00005', city: 'Nashik', pincode: '422001' },
+    lines: [{ slug: 'desk-caddy-pen-key', quantity: 1 }, { slug: 'under-desk-headphone-hook', quantity: 2 }],
+  },
+  {
+    ref: 'BP-DEMO-1006', channel: 'bike-meet', channelDetail: 'Sunday Khandala ride', status: 'placed', daysAgo: 4,
+    customer: { name: 'K. Rider', phone: '+91 90000 00006', city: 'Lonavala', pincode: '410401' },
+    lines: [{ slug: 'dominar-silhouette-keychain', quantity: 6 }],
+  },
+  {
+    ref: 'BP-DEMO-1007', channel: 'partner-api', channelDetail: 'Partner: Gearhouse', status: 'placed', daysAgo: 1,
+    customer: { name: 'Gearhouse Retail', phone: '+91 90000 00007', city: 'Delhi', pincode: '110001' },
+    lines: [{ slug: 'cable-clip-set-six', quantity: 5 }, { slug: 'bottle-opener-keyring', quantity: 4 }],
+  },
+  {
+    ref: 'BP-DEMO-1008', channel: 'whatsapp', channelDetail: 'Gift order', status: 'placed', daysAgo: 7,
+    customer: { name: 'P. Gifter', phone: '+91 90000 00008', city: 'Pune', pincode: '411038' },
+    lines: [{ slug: 'hex-dice-tower', quantity: 1 }, { slug: 'self-watering-mini-planter', quantity: 1 }],
+  },
+];
+
+module.exports = { categories, products, schedules, rules, coupons, users, demoOrders, DEMO_PASSWORD };

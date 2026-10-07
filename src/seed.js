@@ -16,7 +16,8 @@ const DiscountSchedule = require('./models/DiscountSchedule');
 const PriceRule = require('./models/PriceRule');
 const Coupon = require('./models/Coupon');
 const User = require('./models/User');
-const { categories, products, schedules, rules, coupons, users, DEMO_PASSWORD } = require('./seed-data');
+const Order = require('./models/Order');
+const { categories, products, schedules, rules, coupons, users, demoOrders, DEMO_PASSWORD } = require('./seed-data');
 
 async function upsert(Model, docs, key) {
   let created = 0;
@@ -46,6 +47,7 @@ async function run() {
       PriceRule.deleteMany({}),
       Coupon.deleteMany({}),
       User.deleteMany({ email: /@batpodlabs\.test$/ }),
+      Order.deleteMany({ reference: /^BP-DEMO-/ }),
     ]);
     console.log('Collections cleared (--reset).');
   }
@@ -89,6 +91,65 @@ async function run() {
       for (const u of users) console.log(`  ${u.email.padEnd(32)} ${u.note}`);
       console.log('  These are test accounts. Delete them before you take real orders.');
     }
+  }
+
+
+  if (process.argv.includes('--no-orders')) {
+    console.log('Demo orders: skipped (--no-orders)');
+  } else {
+    const bySlug = new Map((await Product.find({})).map((doc) => [doc.slug, doc]));
+    let madeOrders = 0;
+
+    for (const spec of demoOrders) {
+      if (await Order.findOne({ reference: spec.ref })) continue;
+
+      const lines = [];
+      for (const l of spec.lines) {
+        const product = bySlug.get(l.slug);
+        if (!product) continue;
+        const unit = product.listPrice;
+        lines.push({
+          sku: product.sku,
+          name: product.name,
+          slug: product.slug,
+          quantity: l.quantity,
+          listPrice: unit,
+          netUnitPrice: unit,
+          netLineTotal: unit * l.quantity,
+          adjustments: [],
+        });
+      }
+      if (lines.length === 0) continue;
+
+      const gross = lines.reduce((s, l) => s + l.netLineTotal, 0);
+      // Same free-shipping threshold the live rules use, so the demo totals are
+      // not obviously different from a real order.
+      const shipping = gross >= 1500 ? 0 : Number(process.env.DEFAULT_SHIPPING_FEE || 79);
+
+      const created = await Order.create({
+        reference: spec.ref,
+        channel: spec.channel,
+        channelDetail: spec.channelDetail,
+        status: spec.status,
+        customer: spec.customer,
+        lines,
+        grossSubtotal: gross,
+        subtotal: gross,
+        shipping,
+        total: gross + shipping,
+        totalSaved: 0,
+        notes: 'Demo order created by the seed script. Safe to delete.',
+      });
+
+      // Backdate it. The planner's urgency score reads order age, so orders
+      // that were all created a second ago would make the queue meaningless.
+      const when = new Date(Date.now() - spec.daysAgo * 24 * 60 * 60 * 1000);
+      await Order.updateOne({ _id: created._id }, { $set: { createdAt: when } }, { timestamps: false });
+      madeOrders += 1;
+    }
+
+    console.log(`Demo orders: ${madeOrders} created, ${demoOrders.length - madeOrders} already there`);
+    if (madeOrders > 0) console.log('  All prefixed BP-DEMO- so you can find and delete them later.');
   }
 
   await mongoose.connection.close();

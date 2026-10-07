@@ -11,6 +11,7 @@ const PartnerKey = require('../models/PartnerKey');
 const User = require('../models/User');
 const { calculateQuote } = require('../pricing/engine');
 const { unitCost } = require('../pricing/costing');
+const { PRINTERS, DEFAULT_PRINTER, suggestPlate, explodeQueue } = require('../printing/planner');
 
 const router = express.Router();
 
@@ -334,6 +335,94 @@ router.get('/dashboard', async (_req, res, next) => {
       orderCount: revenue[0] ? revenue[0].count : 0,
       customerCount,
       byChannel: byChannel.map((c) => ({ channel: c._id || 'website', count: c.count, revenue: c.revenue })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * The print queue: everything waiting to go on a plate.
+ *
+ * Returns the raw queue rows AND a suggested plate, so the page has something
+ * sensible on screen the moment it opens rather than an empty bed. The
+ * suggestion is advice, not a decision — the planner is a pure function the
+ * page can re-run locally as you add and remove pieces.
+ *
+ * Admin-only: it sits behind the same ADMIN_KEY gate as everything else in
+ * this router, and nothing here is exposed to the storefront.
+ */
+router.get('/print-queue', async (req, res, next) => {
+  try {
+    const printerId = PRINTERS[req.query.printer] ? req.query.printer : DEFAULT_PRINTER;
+    const maxMinutes = req.query.maxMinutes ? Number(req.query.maxMinutes) : null;
+
+    // Only work that is actually waiting. Shipped and delivered orders are
+    // done; cancelled ones must never reach the bed; drafts were never placed.
+    const orders = await Order.find({ status: { $in: ['placed', 'printing'] } })
+      .sort({ createdAt: 1 })
+      .limit(200)
+      .lean();
+
+    const skus = [...new Set(orders.flatMap((o) => o.lines.map((l) => l.sku)))];
+    const products = await Product.find({ sku: { $in: skus } })
+      .select('sku slug name footprintMm heightMm printMinutes printHours filamentGrams colours supportsRequired categorySlug')
+      .lean();
+    const bySku = new Map(products.map((p) => [p.sku, p]));
+
+    const now = Date.now();
+    const queue = [];
+    const unplannable = [];
+
+    for (const order of orders) {
+      const daysWaiting = Math.max(0, Math.floor((now - new Date(order.createdAt).getTime()) / 86400000));
+      for (const line of order.lines) {
+        const product = bySku.get(line.sku);
+        const footprint = product && product.footprintMm ? product.footprintMm : null;
+        // Fall back to the rounded costing hours when a product has no slicer
+        // figure recorded, so an incomplete catalog degrades instead of hiding
+        // the order entirely.
+        const minutes = (product && product.printMinutes) || (product && product.printHours ? product.printHours * 60 : 0);
+
+        const row = {
+          orderId: String(order._id),
+          reference: order.reference,
+          channel: order.channel || 'website',
+          channelDetail: order.channelDetail || '',
+          status: order.status,
+          customerName: (order.customer && order.customer.name) || '',
+          daysWaiting,
+          placedAt: order.createdAt,
+          sku: line.sku,
+          name: line.name,
+          slug: line.slug,
+          quantity: line.quantity,
+          categorySlug: product ? product.categorySlug : null,
+          footprintMm: footprint,
+          heightMm: (product && product.heightMm) || 0,
+          printMinutes: minutes,
+          filamentGrams: (product && product.filamentGrams) || 0,
+          colours: (product && product.colours) || [],
+          supportsRequired: Boolean(product && product.supportsRequired),
+        };
+
+        if (!footprint || !footprint.x || !footprint.y || !minutes) {
+          unplannable.push({ sku: line.sku, name: line.name, reference: order.reference, reason: !product ? 'product no longer in the catalog' : 'no print geometry recorded' });
+        }
+        queue.push(row);
+      }
+    }
+
+    const plate = suggestPlate(queue, { printerId, maxMinutes });
+
+    res.json({
+      printers: Object.values(PRINTERS),
+      printer: printerId,
+      queue,
+      pieces: explodeQueue(queue),
+      suggestion: plate,
+      unplannable,
+      generatedAt: new Date().toISOString(),
     });
   } catch (err) {
     next(err);

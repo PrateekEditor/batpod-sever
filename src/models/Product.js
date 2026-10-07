@@ -26,6 +26,23 @@ const ProductSchema = new mongoose.Schema(
     printHours: { type: Number, default: 0 },
     handsOnMinutes: { type: Number, default: 0 },
 
+    /**
+     * Print geometry — what the plate planner needs.
+     *
+     * `footprintMm` is the part as it sits on the bed, not its bounding box in
+     * CAD; `heightMm` decides whether it clears the gantry. `printMinutes` is
+     * kept separate from `printHours` on purpose: printHours feeds the costing
+     * model and is rounded, the planner needs the real slicer figure.
+     */
+    footprintMm: {
+      x: { type: Number, default: 0 },
+      y: { type: Number, default: 0 },
+    },
+    heightMm: { type: Number, default: 0 },
+    printMinutes: { type: Number, default: 0 },
+    colours: { type: [String], default: [] },
+    supportsRequired: { type: Boolean, default: false },
+
     // Availability
     stockOnHand: { type: Number, default: 0 },
     madeToOrder: { type: Boolean, default: false },
@@ -50,6 +67,11 @@ ProductSchema.virtual('availability').get(function () {
   if (this.stockOnHand > 5) return 'in-stock';
   if (this.stockOnHand > 0) return 'low-stock';
   return 'sold-out';
+});
+
+
+ProductSchema.virtual('plannable').get(function () {
+  return Boolean(this.footprintMm && this.footprintMm.x > 0 && this.footprintMm.y > 0 && this.printMinutes > 0);
 });
 
 ProductSchema.set('toJSON', { virtuals: true });
