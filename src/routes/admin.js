@@ -12,11 +12,12 @@ const User = require('../models/User');
 const { calculateQuote } = require('../pricing/engine');
 const { unitCost } = require('../pricing/costing');
 const { PRINTERS, DEFAULT_PRINTER, suggestPlate, explodeQueue } = require('../printing/planner');
+const { IP_FIELDS } = require('../catalog/ip');
 
 const router = express.Router();
 
 /** Tiny CRUD factory so six resources don't become six near-identical files. */
-function crud(Model, { sort = { createdAt: -1 }, searchFields = [] } = {}) {
+function crud(Model, { sort = { createdAt: -1 }, searchFields = [], select = '' } = {}) {
   const r = express.Router();
 
   r.get('/', async (req, res, next) => {
@@ -28,7 +29,9 @@ function crud(Model, { sort = { createdAt: -1 }, searchFields = [] } = {}) {
       if (req.query.category) filter.categorySlug = String(req.query.category);
       if (req.query.channel) filter.channel = String(req.query.channel);
       if (req.query.status) filter.status = String(req.query.status);
-      res.json(await Model.find(filter).sort(sort).limit(500).lean({ virtuals: true }));
+      if (req.query.verdict) filter.sellableVerdict = String(req.query.verdict);
+      if (req.query.ipStatus) filter.ipStatus = String(req.query.ipStatus);
+      res.json(await Model.find(filter).select(select).sort(sort).limit(500).lean({ virtuals: true }));
     } catch (err) {
       next(err);
     }
@@ -36,7 +39,7 @@ function crud(Model, { sort = { createdAt: -1 }, searchFields = [] } = {}) {
 
   r.get('/:id', async (req, res, next) => {
     try {
-      const doc = await Model.findById(req.params.id).lean({ virtuals: true });
+      const doc = await Model.findById(req.params.id).select(select).lean({ virtuals: true });
       if (!doc) return res.status(404).json({ error: 'Not found' });
       res.json(doc);
     } catch (err) {
@@ -76,7 +79,9 @@ function crud(Model, { sort = { createdAt: -1 }, searchFields = [] } = {}) {
   return r;
 }
 
-router.use('/products', crud(Product, { sort: { sortOrder: 1, name: 1 }, searchFields: ['name', 'sku', 'slug'] }));
+// The rights fields are select:false on the model; the admin is the one place that asks for them.
+const PRODUCT_ADMIN_SELECT = IP_FIELDS.map((f) => `+${f}`).join(' ');
+router.use('/products', crud(Product, { sort: { sortOrder: 1, name: 1 }, searchFields: ['name', 'sku', 'slug'], select: PRODUCT_ADMIN_SELECT }));
 router.use('/categories', crud(Category, { sort: { sortOrder: 1 }, searchFields: ['name', 'slug'] }));
 router.use('/schedules', crud(DiscountSchedule, { searchFields: ['name'] }));
 router.use('/rules', crud(PriceRule, { sort: { priority: 1 }, searchFields: ['name'] }));

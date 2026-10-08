@@ -4,6 +4,7 @@ const Category = require('../models/Category');
 const Order = require('../models/Order');
 const { optionalAuth } = require('../middleware/auth');
 const { recommendProducts } = require('../recommend');
+const { SELLABLE } = require('../catalog/ip');
 
 const router = express.Router();
 
@@ -44,7 +45,7 @@ router.get('/categories', async (_req, res, next) => {
   try {
     const categories = await Category.find({ active: true }).sort({ sortOrder: 1, name: 1 }).lean();
     const counts = await Product.aggregate([
-      { $match: { active: true } },
+      { $match: { ...SELLABLE } },
       { $group: { _id: '$categorySlug', count: { $sum: 1 } } },
     ]);
     const countBySlug = Object.fromEntries(counts.map((c) => [c._id, c.count]));
@@ -58,7 +59,7 @@ router.get('/categories', async (_req, res, next) => {
 router.get('/products', async (req, res, next) => {
   try {
     const { category, tag, q, sort = 'curated', limit = 24, page = 1 } = req.query;
-    const filter = { active: true };
+    const filter = { ...SELLABLE };
     if (category) filter.categorySlug = String(category).toLowerCase();
     if (tag) filter.tags = String(tag).toLowerCase();
     if (q) filter.$text = { $search: String(q) };
@@ -87,10 +88,10 @@ router.get('/products', async (req, res, next) => {
 // GET /api/products/:slug  — product plus its related rail in one round trip
 router.get('/products/:slug', async (req, res, next) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug.toLowerCase(), active: true }).lean({ virtuals: true });
+    const product = await Product.findOne({ slug: req.params.slug.toLowerCase(), ...SELLABLE }).lean({ virtuals: true });
     if (!product) return res.status(404).json({ error: 'Product not found' });
 
-    const pool = await Product.find({ active: true, _id: { $ne: product._id } }).lean({ virtuals: true });
+    const pool = await Product.find({ ...SELLABLE, _id: { $ne: product._id } }).lean({ virtuals: true });
 
     const related = pool
       .map((p) => ({ product: p, score: scoreRelated(product, p) }))
@@ -117,7 +118,7 @@ router.post('/products/by-slugs', async (req, res, next) => {
   try {
     const slugs = Array.isArray(req.body.slugs) ? req.body.slugs.map((s) => String(s).toLowerCase()) : [];
     if (slugs.length === 0) return res.json([]);
-    const items = await Product.find({ slug: { $in: slugs }, active: true }).lean({ virtuals: true });
+    const items = await Product.find({ slug: { $in: slugs }, ...SELLABLE }).lean({ virtuals: true });
     // preserve the order the caller asked for
     const bySlug = new Map(items.map((i) => [i.slug, i]));
     res.json(slugs.map((s) => bySlug.get(s)).filter(Boolean));
@@ -151,7 +152,7 @@ router.get('/recommendations', optionalAuth, async (req, res, next) => {
       .filter(Boolean);
 
     const [products, pastOrders, salesRows] = await Promise.all([
-      Product.find({ active: true }).lean({ virtuals: true }),
+      Product.find({ ...SELLABLE }).lean({ virtuals: true }),
       req.user
         ? Order.find({ user: req.user._id, status: { $ne: 'cancelled' } }).select('lines.slug').lean()
         : Promise.resolve([]),

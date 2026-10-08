@@ -34,6 +34,58 @@ async function upsert(Model, docs, key) {
   return { created, updated };
 }
 
+
+/**
+ * Fill in fields the seed knows about on products that already exist.
+ *
+ * `upsert` only creates what is missing, so products seeded before a field
+ * existed never receive it - which is how the live catalogue ended up with no
+ * print geometry. This fills those gaps.
+ *
+ * Fields travel in groups, and a group is written only if it was never filled.
+ * Footprint, height, time and colours belong together; so do the rights
+ * fields. Once you have edited a product in the admin, the seed leaves that
+ * group alone - it never overwrites a decision you made.
+ */
+const BACKFILL_GROUPS = [
+  {
+    name: 'print geometry',
+    fields: ['footprintMm', 'heightMm', 'printMinutes', 'colours', 'supportsRequired'],
+    neverFilled: (p) => !p.footprintMm || !p.footprintMm.x || !p.footprintMm.y,
+  },
+  {
+    name: 'rights',
+    fields: ['ipStatus', 'sellableVerdict', 'modelSource', 'ipNotes'],
+    // 'unknown' is the schema default, so it means nobody has reviewed it yet.
+    neverFilled: (p) => !p.ipStatus || p.ipStatus === 'unknown',
+  },
+];
+
+async function backfillProducts(seedProducts) {
+  const hidden = '+ipStatus +sellableVerdict +modelSource +licenceRef +licenceCheckedOn +ipNotes';
+  const counts = Object.fromEntries(BACKFILL_GROUPS.map((g) => [g.name, 0]));
+
+  for (const seed of seedProducts) {
+    const existing = await Product.findOne({ sku: seed.sku }).select(hidden).lean();
+    if (!existing) continue;
+
+    const set = {};
+    for (const group of BACKFILL_GROUPS) {
+      if (!group.neverFilled(existing)) continue;
+      let touched = false;
+      for (const f of group.fields) {
+        if (seed[f] !== undefined) {
+          set[f] = seed[f];
+          touched = true;
+        }
+      }
+      if (touched) counts[group.name] += 1;
+    }
+    if (Object.keys(set).length) await Product.updateOne({ _id: existing._id }, { $set: set });
+  }
+  return counts;
+}
+
 async function run() {
   const reset = process.argv.includes('--reset');
   await connectDB();
@@ -67,6 +119,11 @@ async function run() {
 
   const p = await upsert(Product, withSchedule, 'sku');
   console.log(`Products: ${p.created} created, ${p.updated} already there`);
+
+  const filled = await backfillProducts(products);
+  for (const [group, n] of Object.entries(filled)) {
+    if (n > 0) console.log(`  ${group}: filled in on ${n} existing product(s)`);
+  }
 
   const r = await upsert(PriceRule, rules, 'name');
   console.log(`Price rules: ${r.created} created, ${r.updated} already there`);

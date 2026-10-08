@@ -43,6 +43,30 @@ const ProductSchema = new mongoose.Schema(
     colours: { type: [String], default: [] },
     supportsRequired: { type: Boolean, default: false },
 
+    /**
+     * Rights classification - why you are allowed to sell this.
+     *
+     * Every field is `select: false`, the same treatment a password hash gets:
+     * a query has to ask for them by name, so no storefront route can leak them
+     * by accident. The admin product routes ask; nothing public does.
+     *
+     * Defaults are deliberately pessimistic. A new product is `unknown` and
+     * `caution` until someone reviews it, so an unreviewed item is never
+     * silently treated as safe.
+     */
+    ipStatus: {
+      type: String,
+      enum: ['original', 'public-domain', 'generic-functional', 'personalised', 'licensed-commercial', 'fan-art', 'unknown'],
+      default: 'unknown',
+      select: false,
+      index: true,
+    },
+    sellableVerdict: { type: String, enum: ['yes', 'caution', 'no'], default: 'caution', select: false, index: true },
+    modelSource: { type: String, default: '', select: false },
+    licenceRef: { type: String, default: '', select: false },
+    licenceCheckedOn: { type: Date, default: null, select: false },
+    ipNotes: { type: String, default: '', select: false },
+
     // Availability
     stockOnHand: { type: Number, default: 0 },
     madeToOrder: { type: Boolean, default: false },

@@ -4,6 +4,7 @@ const DiscountSchedule = require('../models/DiscountSchedule');
 const PriceRule = require('../models/PriceRule');
 const Coupon = require('../models/Coupon');
 const { calculateQuote } = require('../pricing/engine');
+const { SELLABLE } = require('../catalog/ip');
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ router.post('/quote', async (req, res, next) => {
     }
 
     const slugs = rawLines.map((l) => String(l.slug).toLowerCase());
-    const products = await Product.find({ slug: { $in: slugs }, active: true }).lean();
+    const products = await Product.find({ slug: { $in: slugs }, ...SELLABLE }).lean();
     const bySlug = new Map(products.map((p) => [p.slug, p]));
 
     const lines = [];

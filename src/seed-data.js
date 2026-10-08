@@ -39,6 +39,8 @@ const products = [
     description: 'A clean side profile of the bike, printed in two colours on the AMS so there is no paint to chip. Fits a standard split ring. Prints in about 35 minutes, which is why it can stay cheap.',
     filamentGrams: 18, printHours: 1, handsOnMinutes: 9, stockOnHand: 24, featured: true, kitEligible: true, sortOrder: 1,
     footprintMm: { x: 72, y: 30 }, heightMm: 5, printMinutes: 35, colours: ['matte-black', 'gold'], supportsRequired: false,
+    ipStatus: 'original', sellableVerdict: 'caution', modelSource: "Own CAD (planned)",
+    ipNotes: "'Dominar' is a Bajaj Auto trademark and the profile is their vehicle design. Rename the listing (e.g. Matte Tourer Silhouette), keep the badge off, and describe fit, not brand, before selling at volume.",
   },
   {
     sku: 'BP-BK-002', slug: 'matte-helmet-wall-hook', name: 'Matte Helmet Wall Hook',
@@ -47,6 +49,8 @@ const products = [
     description: 'A wide saddle spreads the weight so the helmet liner keeps its shape. Takes two screws, holds a full-face comfortably. Printed solid at 40% infill.',
     filamentGrams: 60, printHours: 4, handsOnMinutes: 15, stockOnHand: 6, kitEligible: false, sortOrder: 2,
     footprintMm: { x: 112, y: 86 }, heightMm: 58, printMinutes: 240, colours: ['matte-black'], supportsRequired: true,
+    ipStatus: 'generic-functional', sellableVerdict: 'yes', modelSource: "",
+    ipNotes: "A wall hook shaped for a helmet. No brand, no character, no copied mechanism.",
   },
   {
     sku: 'BP-BK-003', slug: 'custom-bike-nameplate', name: 'Custom Bike Nameplate',
@@ -55,6 +59,8 @@ const products = [
     description: 'Send the text at checkout and it gets printed as raised lettering in a contrast colour. Made to order, so allow a few days.',
     filamentGrams: 80, printHours: 5, handsOnMinutes: 27, stockOnHand: 0, madeToOrder: true, leadTimeDays: 5, sortOrder: 3,
     footprintMm: { x: 180, y: 62 }, heightMm: 10, printMinutes: 300, colours: ['matte-black', 'white'], supportsRequired: false,
+    ipStatus: 'personalised', sellableVerdict: 'yes', modelSource: "",
+    ipNotes: "Buyer supplies the text. Refuse orders whose text is a brand name or logo - personalisation does not launder a trademark.",
   },
   {
     sku: 'BP-BK-004', slug: 'number-plate-keyring', name: 'Number Plate Keyring',
@@ -63,6 +69,8 @@ const products = [
     description: 'The plate everyone photographs, shrunk to pocket size. Two-colour print, your registration in raised black on white.',
     filamentGrams: 22, printHours: 1.3, handsOnMinutes: 12, stockOnHand: 0, madeToOrder: true, leadTimeDays: 4, kitEligible: true, sortOrder: 4,
     footprintMm: { x: 56, y: 28 }, heightMm: 5, printMinutes: 78, colours: ['white', 'matte-black'], supportsRequired: false,
+    ipStatus: 'personalised', sellableVerdict: 'yes', modelSource: "",
+    ipNotes: "Buyer's own registration. Plain plate format only; no state emblems or manufacturer marks on the plate.",
   },
 
   // --- Tabletop ------------------------------------------------------------
@@ -73,6 +81,8 @@ const products = [
     description: 'Printed across several plates, cleaned up and assembled here. The centrepiece of the range — slow to make, which is why there is never much stock.',
     filamentGrams: 150, printHours: 9, handsOnMinutes: 48, stockOnHand: 3, featured: true, sortOrder: 1,
     footprintMm: { x: 148, y: 58 }, heightMm: 82, printMinutes: 540, colours: ['matte-black', 'silver', 'red'], supportsRequired: true,
+    ipStatus: 'original', sellableVerdict: 'caution', modelSource: "Own CAD (planned)",
+    ipNotes: "A scale model of a recognisable production bike. Manufacturers license scale models; keep it a generic sport-tourer or get permission before selling it as a specific bike.",
   },
   {
     sku: 'BP-TT-002', slug: 'articulated-flexi-dragon', name: 'Articulated Flexi Dragon',
@@ -81,6 +91,8 @@ const products = [
     description: 'Comes off the printer already articulated — no glue, no pins. The fidget toy that sells itself when someone picks it up.',
     filamentGrams: 45, printHours: 3, handsOnMinutes: 18, stockOnHand: 11, featured: true, kitEligible: true, sortOrder: 2,
     footprintMm: { x: 165, y: 70 }, heightMm: 32, printMinutes: 180, colours: ['teal'], supportsRequired: false,
+    ipStatus: 'licensed-commercial', sellableVerdict: 'caution', modelSource: "MakerWorld / Cults3D (choose design)",
+    ipNotes: "Popular flexi dragons are sold under paid commercial tiers. Buy the tier, record the reference here, and check the terms allow selling prints.",
   },
   {
     sku: 'BP-TT-003', slug: 'hex-dice-tower', name: 'Hex Dice Tower',
@@ -89,6 +101,8 @@ const products = [
     description: 'Internal baffles randomise the roll properly. Packs flat between game nights.',
     filamentGrams: 95, printHours: 6, handsOnMinutes: 22, stockOnHand: 4, sortOrder: 3,
     footprintMm: { x: 92, y: 80 }, heightMm: 165, printMinutes: 360, colours: ['matte-black', 'gold'], supportsRequired: true,
+    ipStatus: 'generic-functional', sellableVerdict: 'yes', modelSource: "",
+    ipNotes: "A dice tower is a generic tabletop accessory. Keep game logos and named-system iconography off it.",
   },
   {
     sku: 'BP-TT-004', slug: 'desk-caddy-pen-key', name: 'Desk Caddy for Pens & Keys',
@@ -97,6 +111,8 @@ const products = [
     description: 'One well for pens, one shallow tray for keys and coins, with a cut-out that actually fits a bike key fob.',
     filamentGrams: 70, printHours: 4.5, handsOnMinutes: 14, stockOnHand: 8, kitEligible: true, sortOrder: 4,
     footprintMm: { x: 120, y: 95 }, heightMm: 70, printMinutes: 270, colours: ['grey'], supportsRequired: false,
+    ipStatus: 'generic-functional', sellableVerdict: 'yes', modelSource: "",
+    ipNotes: "Desk organiser with no brand or character. Lowest-risk category.",
   },
 
   // --- Daily Fixes ---------------------------------------------------------
@@ -107,6 +123,8 @@ const products = [
     description: 'Three sizes so charger, earphone and data cables each get the right grip. Adhesive pads included.',
     filamentGrams: 24, printHours: 1.5, handsOnMinutes: 10, stockOnHand: 30, kitEligible: true, sortOrder: 1,
     footprintMm: { x: 108, y: 36 }, heightMm: 12, printMinutes: 90, colours: ['matte-black'], supportsRequired: false,
+    ipStatus: 'generic-functional', sellableVerdict: 'yes', modelSource: "",
+    ipNotes: "Generic cable clips. Lowest-risk category and among the best margins.",
   },
   {
     sku: 'BP-DL-002', slug: 'under-desk-headphone-hook', name: 'Under-Desk Headphone Hook',
@@ -115,6 +133,8 @@ const products = [
     description: 'Friction-fit to the desk edge, so nothing is drilled and nothing peels off in summer. Holds a full-size pair.',
     filamentGrams: 28, printHours: 1.8, handsOnMinutes: 9, stockOnHand: 18, kitEligible: true, sortOrder: 2,
     footprintMm: { x: 86, y: 64 }, heightMm: 38, printMinutes: 108, colours: ['matte-black'], supportsRequired: true,
+    ipStatus: 'generic-functional', sellableVerdict: 'yes', modelSource: "",
+    ipNotes: "Generic under-desk hook. Describe compatibility in words; no headphone brand logos.",
   },
   {
     sku: 'BP-DL-003', slug: 'self-watering-mini-planter', name: 'Self-Watering Mini Planter',
@@ -123,6 +143,8 @@ const products = [
     description: 'The inner pot wicks from a reservoir below, so a desk plant survives a weekend away.',
     filamentGrams: 52, printHours: 3.4, handsOnMinutes: 12, stockOnHand: 9, sortOrder: 3,
     footprintMm: { x: 96, y: 96 }, heightMm: 105, printMinutes: 204, colours: ['white', 'teal'], supportsRequired: false,
+    ipStatus: 'generic-functional', sellableVerdict: 'yes', modelSource: "",
+    ipNotes: "Generic planter. Self-watering wick planters are a common, unpatented form.",
   },
   {
     sku: 'BP-DL-004', slug: 'bottle-opener-keyring', name: 'Bottle Opener Keyring',
@@ -131,6 +153,8 @@ const products = [
     description: 'PETG rather than PLA, because a PLA opener snaps on the third bottle. Slim enough to live on a keyring.',
     filamentGrams: 20, printHours: 1.2, handsOnMinutes: 8, stockOnHand: 22, kitEligible: true, sortOrder: 4,
     footprintMm: { x: 64, y: 26 }, heightMm: 6, printMinutes: 72, colours: ['silver'], supportsRequired: false,
+    ipStatus: 'generic-functional', sellableVerdict: 'yes', modelSource: "",
+    ipNotes: "Generic keyring opener. No beer brand marks on the part or the photos.",
   },
 ];
 

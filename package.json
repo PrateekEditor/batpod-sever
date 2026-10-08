@@ -9,12 +9,13 @@
     "seed": "node src/seed.js",
     "test:pricing": "node src/pricing/engine.test.js",
     "test:catalog": "node src/pricing/catalog.test.js",
-    "test": "npm run test:pricing && npm run test:catalog && npm run test:estimate && npm run test:recommend && npm run test:planner",
+    "test": "npm run test:pricing && npm run test:catalog && npm run test:estimate && npm run test:recommend && npm run test:planner && npm run test:ip",
     "test:estimate": "node src/pricing/customEstimate.test.js",
     "dev:fast": "node --watch src/dev.js",
     "start": "node src/dev.js",
     "test:recommend": "node src/recommend.test.js",
-    "test:planner": "node src/printing/planner.test.js"
+    "test:planner": "node src/printing/planner.test.js",
+    "test:ip": "node src/catalog/ip.test.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

@@ -6,6 +6,7 @@ const Coupon = require('../models/Coupon');
 const Order = require('../models/Order');
 const { calculateQuote } = require('../pricing/engine');
 const { optionalAuth } = require('../middleware/auth');
+const { SELLABLE } = require('../catalog/ip');
 
 const router = express.Router();
 const DEFAULT_SHIPPING = Number(process.env.DEFAULT_SHIPPING_FEE || 60);
@@ -37,7 +38,7 @@ router.post('/orders', optionalAuth, async (req, res, next) => {
     }
 
     const slugs = rawLines.map((l) => String(l.slug).toLowerCase());
-    const products = await Product.find({ slug: { $in: slugs }, active: true }).lean();
+    const products = await Product.find({ slug: { $in: slugs }, ...SELLABLE }).lean();
     const bySlug = new Map(products.map((p) => [p.slug, p]));
 
     const lines = rawLines
