@@ -9,7 +9,7 @@
  */
 const assert = require('assert');
 const { calculateQuote } = require('./engine');
-const { products, schedules, rules } = require('../seed-data');
+const { categories, products, schedules, rules } = require('../seed-data');
 
 let passed = 0;
 function test(name, fn) {
@@ -42,7 +42,7 @@ console.log('\nSeeded catalog pricing');
 test('every seeded product has a price and a category', () => {
   for (const p of products) {
     assert.ok(p.listPrice > 0, `${p.sku} has no price`);
-    assert.ok(['biker', 'tabletop', 'daily'].includes(p.categorySlug), `${p.sku} has a bad category`);
+    assert.ok(categories.some((c) => c.slug === p.categorySlug), `${p.sku} has a bad category`);
   }
 });
 

@@ -28,7 +28,16 @@ const categories = [
     accent: '#2F6B4F',
     sortOrder: 3,
   },
+  {
+    slug: 'minis',
+    name: 'Minis',
+    tagline: 'Tiny characters, printed in minutes',
+    description: 'Flexi geckos, pocket ghosts, desk ducks. Small enough to post in an envelope, quick enough to print a plate of twenty overnight. Bought three at a time.',
+    accent: '#8c5a9e',
+    sortOrder: 4,
+  },
 ];
+
 
 const products = [
   // --- Bike & Rider --------------------------------------------------------
@@ -156,7 +165,63 @@ const products = [
     ipStatus: 'generic-functional', sellableVerdict: 'yes', modelSource: "",
     ipNotes: "Generic keyring opener. No beer brand marks on the part or the photos.",
   },
+  // --- Minis ---------------------------------------------------------------
+  // Each of these is a shape with proven demand on MakerWorld. The specific
+  // sculpts there are under a licence that does not allow selling prints, so
+  // these are held at caution until the designer's commercial membership is
+  // bought or the sculpt is replaced with an original. See the rights notes.
+  {
+    sku: 'BP-MN-001', slug: 'flexi-gecko', name: 'Flexi Gecko',
+    categorySlug: 'minis', listPrice: 199, tags: ['flexi', 'articulated', 'desk', 'gift', 'fidget'],
+    shortDescription: 'A palm-sized articulated gecko that wriggles. Prints in one piece, no assembly.',
+    description: 'Print-in-place joints along the spine and tail, so it curls around a finger straight off the plate. Single colour by default; ask for a two-tone back on the AMS.',
+    filamentGrams: 9, printHours: 0.5, handsOnMinutes: 3, stockOnHand: 12, kitEligible: true, sortOrder: 1,
+    footprintMm: { x: 118, y: 44 }, heightMm: 12, printMinutes: 24, colours: ['teal'], supportsRequired: false,
+    ipStatus: 'licensed-commercial', sellableVerdict: 'caution', modelSource: 'https://makerworld.com/en/models/2416763-flexi-gecko',
+    ipNotes: "FMCraft's Flexi Gecko is Standard Digital File License: free to print, not to sell. Buy the designer's commercial membership or replace with an original sculpt before selling.",
+  },
+  {
+    sku: 'BP-MN-002', slug: 'mini-pumpkin', name: 'Mini Pumpkin',
+    categorySlug: 'minis', listPrice: 149, tags: ['seasonal', 'desk', 'gift', 'halloween', 'diwali'],
+    shortDescription: 'A thumb-sized pumpkin for a desk or a shelf. Plain, or carved as a jack-o-lantern.',
+    description: 'Prints without supports in under half an hour. Sold singly or as a set of three in orange, cream and matte black.',
+    filamentGrams: 8, printHours: 0.5, handsOnMinutes: 2, stockOnHand: 18, kitEligible: true, sortOrder: 2,
+    footprintMm: { x: 38, y: 38 }, heightMm: 34, printMinutes: 28, colours: ['red', 'gold'], supportsRequired: false,
+    ipStatus: 'licensed-commercial', sellableVerdict: 'caution', modelSource: 'https://makerworld.com/en/models/1713428-lil-pumpkins',
+    ipNotes: "3dPrintInPlace's Lil' Pumpkins is SDFL with a paid membership for commercial use. A pumpkin is a generic shape - an original model would clear this entirely.",
+  },
+  {
+    sku: 'BP-MN-003', slug: 'mini-ghost', name: 'Mini Ghost',
+    categorySlug: 'minis', listPrice: 49, tags: ['seasonal', 'tiny', 'halloween', 'party', 'bulk'],
+    shortDescription: 'A 10 mm ghost. Hide them around the house, line them up on a monitor, drop one in every parcel.',
+    description: 'Thirteen minutes each, or a plate of a hundred overnight. Sold in packs of ten with black eyes on the AMS.',
+    filamentGrams: 1, printHours: 0.25, handsOnMinutes: 1, stockOnHand: 60, kitEligible: true, sortOrder: 3,
+    footprintMm: { x: 12, y: 12 }, heightMm: 10, printMinutes: 13, colours: ['white', 'matte-black'], supportsRequired: false,
+    ipStatus: 'licensed-commercial', sellableVerdict: 'caution', modelSource: 'https://makerworld.com/en/models/1726397-mini-ghost',
+    ipNotes: "fifindr's Mini Ghost is SDFL with a commercial membership. A sheet-ghost is generic; an original sculpt clears it.",
+  },
+  {
+    sku: 'BP-MN-004', slug: 'tiny-duck-with-glasses', name: 'Tiny Duck with Glasses',
+    categorySlug: 'minis', listPrice: 149, tags: ['tiny', 'desk', 'gift', 'duck'],
+    shortDescription: 'A very small, very serious duck. Glasses included.',
+    description: 'Thirty minutes at normal size; three times bigger takes just over an hour and sits on a monitor. The one that gets photographed.',
+    filamentGrams: 5, printHours: 0.5, handsOnMinutes: 2, stockOnHand: 15, kitEligible: true, sortOrder: 4,
+    footprintMm: { x: 28, y: 24 }, heightMm: 26, printMinutes: 30, colours: ['gold', 'matte-black'], supportsRequired: false,
+    ipStatus: 'licensed-commercial', sellableVerdict: 'caution', modelSource: 'https://makerworld.com/en/models/1340477-tiny-duck-with-glasses',
+    ipNotes: "Ducks n' Stuff remix of pheasantz's Tiny Duck, SDFL, commercial licence on Patreon. Credit the whole remix chain if licensed.",
+  },
+  {
+    sku: 'BP-MN-005', slug: 'flexi-pup-keychain', name: 'Flexi Pup Keychain',
+    categorySlug: 'minis', listPrice: 249, tags: ['flexi', 'keyring', 'articulated', 'gift', 'dog'],
+    shortDescription: 'An articulated puppy on a keyring. Wags when the keys move.',
+    description: 'Print-in-place, no supports, loop built into the back. Single colour in half an hour; the two-tone AMS version takes longer and costs a little more.',
+    filamentGrams: 11, printHours: 0.6, handsOnMinutes: 3, stockOnHand: 10, kitEligible: true, sortOrder: 5,
+    footprintMm: { x: 76, y: 32 }, heightMm: 20, printMinutes: 31, colours: ['matte-black', 'white'], supportsRequired: false,
+    ipStatus: 'licensed-commercial', sellableVerdict: 'caution', modelSource: 'https://makerworld.com/en/models/2608825-flexi-dog-articulated-keychain',
+    ipNotes: "Wiggle3D's Flexi Dog is SDFL, commercial licence via Patreon. Buy it or replace the sculpt before selling.",
+  },
 ];
+
 
 const schedules = [
   {
