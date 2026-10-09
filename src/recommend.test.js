@@ -106,7 +106,10 @@ test('sold-out items rank below things that can be bought', () => {
   const list = slugs(r);
   const soldOutAt = list.indexOf('cable-clip-set-six');
   const inStockAt = list.indexOf('under-desk-headphone-hook');
-  assert.ok(soldOutAt > inStockAt, 'a sold-out item should not outrank an available one in the same range');
+  // With a larger catalogue the sold-out item may not make the rail at all,
+  // which is the same outcome: it did not outrank the one in stock.
+  assert.ok(inStockAt !== -1, 'the in-stock item should be on the rail');
+  assert.ok(soldOutAt === -1 || soldOutAt > inStockAt, 'a sold-out item should not outrank an available one in the same range');
 });
 
 test('best-seller counts lift a product', () => {
