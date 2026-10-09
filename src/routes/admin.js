@@ -13,6 +13,7 @@ const { calculateQuote } = require('../pricing/engine');
 const { unitCost } = require('../pricing/costing');
 const { PRINTERS, DEFAULT_PRINTER, suggestPlate, explodeQueue } = require('../printing/planner');
 const { IP_FIELDS } = require('../catalog/ip');
+const { getStatus, setStatus } = require('../shopStatus');
 
 const router = express.Router();
 
@@ -432,6 +433,14 @@ router.get('/print-queue', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+/** Shop status: open, paused or in maintenance. The storefront obeys it within a minute. */
+router.get('/status', async (_req, res, next) => {
+  try { res.json(await getStatus()); } catch (err) { next(err); }
+});
+router.put('/status', async (req, res, next) => {
+  try { res.json(await setStatus(req.body || {})); } catch (err) { next(err); }
 });
 
 module.exports = router;
