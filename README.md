@@ -1,42 +1,157 @@
 # batpod-server
 
-**Live API:** https://batpod-sever.vercel.app
+**Live API:** https://batpod-sever.vercel.app (the typo in the hostname is historical; leave it)
+**Health check:** https://batpod-sever.vercel.app/api/health
+**Repo:** https://github.com/PrateekPatelBluvium9878/batpod-sever
 
-Health check: [/api/health](https://batpod-sever.vercel.app/api/health)
+The API and the pricing engine behind [Batpod Labs](https://batpodshop.vercel.app), a 3D-printing shop in Pune running on a Bambu Lab A1 Combo. The shop ([batpod-shop](https://github.com/PrateekPatelBluvium9878/Batpod-shop)) and the admin ([batpod-admin](https://github.com/PrateekPatelBluvium9878/batpod-admin)) both talk to this and nothing else: one database, one price calculation, one source of truth.
 
-The API and the pricing engine. The shop and the admin both talk to this and nothing else — there is one database, one price calculation, one source of truth.
+If you are an AI assistant working in this repo, read `CLAUDE.md` first — it has the conventions and the gotchas.
+
+## Stack
+
+| Piece | What | Why |
+|---|---|---|
+| Node 20 + [Express 4](https://expressjs.com/) | HTTP | Small, well known, runs the same locally and as one Vercel function |
+| [Mongoose 8](https://mongoosejs.com/) on [MongoDB Atlas](https://www.mongodb.com/atlas) (free M0) | Database | Flexible documents for a catalog that changes often; free tier is plenty |
+| [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) + [bcryptjs](https://github.com/dcodeIO/bcrypt.js) | Customer accounts | Stateless sessions (no session store needed on serverless), slow hashes |
+| [Vercel](https://vercel.com/docs/functions) serverless | Hosting | Free, zero-ops; `api/index.js` exports the Express app, `vercel.json` rewrites everything to it |
+| Plain `node:assert` tests | Tests | No framework; every test file is a script you can read top to bottom |
+
+No TypeScript, no build step, no ORM migrations. CommonJS throughout.
 
 ## What's inside
 
 ```
-api/index.js          Vercel serverless entry — just exports the Express app
-src/app.js            Express app, CORS, error handling
-src/db.js             Cached Mongoose connection (important on serverless)
-src/models/           Category, Product, DiscountSchedule, PriceRule, Coupon, Order
-src/pricing/engine.js The CPQ calculator — pure functions, no database
-src/routes/           catalog (public), quote (public), orders, admin
-src/seed-data.js      The starter catalog
-src/seed.js           Loads it into MongoDB
+api/index.js              Vercel entry — exports the Express app
+src/dev.js                Local entry — listens on PORT
+src/app.js                Express app: CORS, status gate, routes, error handler
+src/db.js                 Cached Mongoose connection (one per warm function)
+src/shopStatus.js         Open / paused / maintenance switch with a 10 s cache
+src/middleware/
+  adminAuth.js            x-admin-key header check for /api/admin/*
+  auth.js                 Bearer JWT → req.user (customer accounts)
+  rateLimit.js            In-memory per-IP limiter (signup, login)
+src/models/               Category, Product, DiscountSchedule, PriceRule, Coupon,
+                          Order, User, QuoteRequest, PartnerKey, Purchase, ShopStatus
+src/pricing/
+  engine.js               The CPQ calculator — pure functions, no database
+  costing.js              Cost model shared by margins, payback and the estimator
+  customEstimate.js       Price a custom print from dimensions/weight before slicing
+src/catalog/ip.js         Design-rights classification: what may be sold
+src/printing/planner.js   Packs orders onto A1 build plates (print queue)
+src/recommend.js          "Picked for you" — interests, recently viewed, popularity
+src/routes/
+  catalog.js              GET categories, products, recommendations (public)
+  quote.js                POST /api/quote (public; cart pricing)
+  orders.js               POST /api/orders, GET /api/orders/:reference (tracking)
+  custom.js               Custom print options, estimates and requests
+  auth.js                 Signup, login, profile, own orders
+  admin.js                CRUD for every model + dashboard, print queue, status
+src/seed-data.js          The starter catalog: 4 ranges, 17 products, rules, coupons
+src/seed.js               Loads it into MongoDB (wipes catalog collections first)
 ```
 
 ## Running it locally
 
 ```bash
 npm install
-cp .env.example .env     # then fill in MONGODB_URI and ADMIN_KEY
-npm run seed             # loads 3 categories, 12 products, rules and coupons
-npm run dev              # http://localhost:4000
+cp .env.example .env        # fill in MONGODB_URI, ADMIN_KEY, JWT_SECRET
+npm run seed                # loads the catalog
+npm run dev                 # runs the tests, then http://localhost:4000 with --watch
 ```
 
-Check it came up: `curl http://localhost:4000/api/health`
+`npm run dev:fast` skips the tests. Check it came up: `curl http://localhost:4000/api/health`.
+
+From the workspace root (`~/Downloads/batpod`) there is a launcher: `npm run server`, `npm run seed`, `npm run dev` (all three apps at once).
 
 ## Tests
 
 ```bash
-npm test                 # pricing engine + seeded catalog
+npm test
 ```
 
-These need no database. `test:pricing` checks the engine against hand-worked numbers; `test:catalog` runs your real seed catalog through it, so if you change a price or a tier and a total moves, a test tells you.
+Eight suites, no database needed, ~2 seconds:
+
+| Suite | Checks | What it protects |
+|---|---|---|
+| `test:pricing` | 19 | Engine against hand-worked numbers; range vs slab tiers; rule priority; coupon last |
+| `test:catalog` | 11 | The real seed catalog through the engine — a price change that moves a total fails a test |
+| `test:estimate` | 20 | Custom-print estimator: buffers, minimums, material multipliers |
+| `test:recommend` | 15 | Recommendation ordering and de-duplication |
+| `test:planner` | 47 | Plate packing: fits the A1 bed, respects AMS colour limit, whole-order first |
+| `test:ip` | 22 | Rights classification; only `licensed-commercial` / `own-design` are sellable |
+| `test:status` | 7 | Shop status modes, message caps, `requireOpen` refusal |
+| `test:auth` | 8 | Password rules, profile cleaning, consent stamping |
+
+Each file is `node src/.../x.test.js` — a `check(name, fn)` helper, `assert`, a summary line. Add a check by copying one.
+
+## Environment variables
+
+Everything is in `.env.example` with a comment per line. The ones that matter:
+
+| Variable | Used for |
+|---|---|
+| `MONGODB_URI` | Atlas connection string. The database name in the URI is the one used. |
+| `ADMIN_KEY` | Shared secret the admin app sends as `x-admin-key`. Long and random. |
+| `JWT_SECRET` / `JWT_TTL` | Customer sessions. Changing the secret signs everyone out. |
+| `ALLOWED_ORIGINS` | Comma-separated CORS allow-list. Blank = allow all (local only). Add every origin the shop or admin is served from — including `https://<you>.github.io` if you use GitHub Pages. |
+| `DEFAULT_SHIPPING_FEE` | Rupees, before free-shipping rules. |
+| `COST_*`, `PRINTER_HOURS_PER_DAY` | The cost model (filament ₹/g, electricity, labour, fail rate). Used by payback, dashboard margins and the estimator. |
+| `CUSTOM_*` | Custom-print estimator margin, over-estimate buffer, setup minutes, max upload size. |
+| `REQUIRE_PARTNER_KEY` | When `true`, `/api/quote` and `/api/orders` need a partner key. Leave `false` or you lock out your own shop. |
+
+On Vercel, set the same variables under Project → Settings → Environment Variables, then redeploy.
+
+## API
+
+All JSON. Prices in rupees as numbers. Errors are `{ error: "…" }` with a sensible status; validation errors on signup also carry `field`.
+
+### Public
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/health` | Uptime check, no DB |
+| GET | `/api/status` | `{ mode, message, until, allowBrowsing, reachable }` — read **before** the DB gate so it answers even when Atlas is down |
+| GET | `/api/categories` | With `productCount` and `accent` colour |
+| GET | `/api/products?category=&sort=&page=&limit=` | Sellable products only (see IP below) |
+| GET | `/api/products/:slug` | `{ product, related, crossSell }` |
+| POST | `/api/products/by-slugs` | `{ slugs: [] }` → products, for the recently-viewed rail |
+| GET | `/api/recommendations?recent=&limit=&exclude=` | Personalised when a Bearer token is sent |
+| POST | `/api/quote` | `{ lines:[{slug,quantity}], couponCode }` → priced cart with an `adjustments` trail per line |
+| POST | `/api/orders` | `{ customer, lines, couponCode, channel, channelDetail }` → `{ reference, total, status }`. Prices are recomputed server-side; the client's numbers are ignored. |
+| GET | `/api/orders/:reference?phone=` or `?email=` | Tracking. The phone tail (last 4+ digits) or the exact email on the order is required; a reference alone returns 404. |
+| GET/POST | `/api/custom/options`, `/api/custom/estimate`, `/api/custom/requests` | Custom print flow |
+
+`/api/quote` and `/api/orders` are behind `requireOpen`: when the shop is paused or in maintenance they return 503 with the status attached, and the shop shows the notice instead of a cart.
+
+### Accounts (`/api/auth/*`)
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/auth/signup` | `{ email, password, name?, interests?, profile?, consent?, website? }` → `{ token, user, offer }`. `website` is a honeypot: filled = bot = fake 201. Rate-limited 10/15 min per IP. |
+| POST | `/auth/login` | Same message for unknown email and wrong password. 20/15 min per IP. |
+| GET / PATCH | `/auth/me` | Profile; PATCH accepts `name, phone, address, interests, profile, consent` |
+| GET | `/auth/orders` | This account's orders |
+| GET | `/auth/orders/:reference` | One order with its status history |
+
+Password rules (`passwordProblem` in `routes/auth.js`): 8–128 chars, not on the common list, not containing the email's local part. The shop runs the same rules client-side (`lib/profile.js`) so the server copy is the one that counts.
+
+### Admin (`/api/admin/*`, header `x-admin-key`)
+
+Generic CRUD (`GET /`, `GET /:id`, `POST /`, `PUT /:id`, `DELETE /:id`, `?q=` search) for products, categories, schedules, rules, coupons, orders, purchases, requests, partner-keys. Plus:
+
+| Path | What |
+|---|---|
+| `PUT /orders/:id` | Goes through `save()` so status changes land in `statusHistory` with a timestamp. Accepts `status, trackingNote, courierRef, notes, channel, channelDetail`. |
+| `GET /users` | Customers |
+| `PATCH /stock/:id` | Adjust stock without touching the rest of the product |
+| `POST /quote-test` | Run a cart through the engine with a what-if |
+| `GET /dashboard` | Revenue, margin, channel mix, top products |
+| `GET /print-queue` | Orders packed onto plates by the planner |
+| `GET /payback` | Printer payback from purchases + margins |
+| `GET / PUT /status` | The shop switch: `open`, `paused`, `maintenance`, with message and optional `until` |
+| `POST /generate-key` | Partner API keys |
 
 ## The pricing engine
 
@@ -49,95 +164,58 @@ Calculation order, deliberately the same as Salesforce CPQ so the result is expl
 5. **Order price rules** — cart-level conditions and actions
 6. **Coupon** — last, on the already-discounted subtotal
 
-Every step appends to that line's `adjustments` array, so the cart can show the customer exactly which discount applied and the admin can see which rule fired.
+Every step appends to that line's `adjustments` array, so the cart shows the customer which discount applied and the admin sees which rule fired.
 
-**Range vs slab**, with tiers 1–10 at 0%, 11–25 at 10%, 26+ at 18%, on 40 units:
+**Range vs slab**, tiers 1–10 at 0%, 11–25 at 10%, 26+ at 18%, on 40 units: `range` gives all 40 units 18%; `slab` gives 10 at 0%, 15 at 10%, 15 at 18%. Range is what customers expect; slab protects margin on big orders. Both are seeded so the quote tester can compare them.
 
-- `range` — all 40 units get 18%
-- `slab` — 10 units at 0%, 15 at 10%, 15 at 18%
+## Orders and tracking
 
-Range is what customers expect. Slab protects your margin on big orders. Both are in the seed so you can compare them in the admin's quote tester.
+An order's life is `draft → placed → printing → shipped → delivered` (or `cancelled`). The `pre('save')` hook on `Order` appends `{ status, at }` to `statusHistory` whenever the status changes — which is why admin updates go through `save()` and not `findByIdAndUpdate`. `trackingNote` (your words to the customer) and `courierRef` are shown on the customer's tracking page. `toTracking()` is the public shape: no customer details, no prices per line.
 
-## API
+Orders record a `channel` (`website`, `instagram`, `youtube`, `whatsapp`, `bike-meet`, `amazon`, `etsy`, `partner-api`, `other`). The shop captures `?from=youtube` on arrival and sends it at checkout; marketplace channels are flagged priority in the admin because they carry dispatch deadlines.
 
-Public:
+There is no payment gateway yet. Orders are confirmed over WhatsApp and settled by UPI; the shop builds both links from `lib/site.js`. When a gateway is added (Razorpay is the obvious one for India), the place to hook it is a `POST /api/orders/:reference/pay` that creates the gateway order and a webhook that moves status `draft → placed`.
 
-| Method | Path | What it does |
-|---|---|---|
-| GET | `/api/health` | Liveness check |
-| GET | `/api/categories` | Categories with product counts |
-| GET | `/api/products` | `?category=&tag=&q=&sort=&limit=&page=` |
-| GET | `/api/products/:slug` | Product **plus** its related and cross-sell rails |
-| POST | `/api/products/by-slugs` | Bulk fetch, used by cart and recently-viewed |
-| POST | `/api/quote` | Prices a basket. The cart never computes its own prices |
-| POST | `/api/orders` | Creates an order (prices recalculated server-side) |
-| GET | `/api/orders/:reference` | Order lookup |
+## Design rights (what may be sold)
 
-Admin — all need the `x-admin-key` header:
+Most free models on MakerWorld, Printables and Thingiverse are non-commercial (Standard Digital File Licence or CC BY-NC). `src/catalog/ip.js` classifies every product by `ipStatus` (`own-design`, `licensed-commercial`, `non-commercial`, `unreviewed`) and `ipVerdict` (`ok`, `caution`, `blocked`); only `SELLABLE` ones reach the public catalog. The rights fields are `select: false` so they never leak through the public API; the admin asks for them explicitly. The Minis range is seeded as `licensed-commercial` / `caution` with a `modelSource` URL for each, so the verdict can be revisited.
 
-| Method | Path | What it does |
-|---|---|---|
-| GET/POST/PUT/DELETE | `/api/admin/{products,categories,schedules,rules,coupons,orders}` | CRUD |
-| PATCH | `/api/admin/stock/:id` | Fast stock and visibility toggle |
-| POST | `/api/admin/quote-test` | Quote with the full rule trail |
-| GET | `/api/admin/dashboard` | Counts, low stock, recent orders |
+## Shop status
+
+`ShopStatus` is a single document. `getStatus()` caches it for 10 seconds; `/api/status` is registered *above* the database gate in `app.js` so a dead Atlas cluster still gets an answer (`reachable:false` from the shop's point of view comes from the request failing, not from this). Modes: `open`, `paused` (browsing allowed, no checkout), `maintenance` (full notice).
+
+## Seed data
+
+`src/seed-data.js` is the catalog. Edit it, run `npm run seed`, push. It wipes and recreates categories, products, schedules, rules and coupons; it leaves orders, users and purchases alone. SKUs: `BP-BK-*` Bike & Rider, `BP-TT-*` Tabletop, `BP-DF-*` Daily Fixes, `BP-MN-*` Minis.
 
 ## Deploying to Vercel
 
-1. Push this repo to GitHub.
-2. In Vercel: **Add New → Project**, import the repo, leave every build setting at its default — `vercel.json` already routes everything to `api/index.js`.
-3. Add environment variables (Settings → Environment Variables), for Production **and** Preview:
+1. Import the GitHub repo in Vercel; framework preset "Other"; no build command.
+2. Add the environment variables from `.env.example`.
+3. Atlas → Network Access → allow `0.0.0.0/0` (serverless has no fixed IP).
+4. Push to `main`; Vercel deploys. Run `npm run seed` locally against the production URI once.
 
-| Name | Value |
-|---|---|
-| `MONGODB_URI` | Your Atlas connection string |
-| `ADMIN_KEY` | A long random string |
-| `ALLOWED_ORIGINS` | `https://your-shop.vercel.app,https://your-admin.vercel.app` |
-| `DEFAULT_SHIPPING_FEE` | `60` |
+`src/db.js` caches the connection on the module scope so a warm function reuses it. Cold starts are ~1 s on the free tier.
 
-4. Deploy, then open `https://your-server.vercel.app/api/health`.
+## Customising
 
-In MongoDB Atlas, under **Network Access**, allow `0.0.0.0/0`. Vercel's functions have no fixed IP addresses, so there is nothing narrower to allow. Your database is still protected by its username and password — make them strong.
+- **New range:** add a category and products to `seed-data.js`, re-seed, add the slug to `KNOWN` in the shop's `app/c/[slug]/page.jsx` and `RANGES` in `lib/profile.js`, add a scene in `components/scenes/Scenes.jsx`.
+- **Prices and discounts:** in the admin (Products, Discount schedules, Price rules, Coupons) — no code.
+- **Cost assumptions:** `.env` `COST_*`.
+- **Order statuses:** `STATUSES` in `models/Order.js`, mirrored in the shop's `OrderTimeline.jsx` and admin's `Orders.jsx`.
+- **Rate limits:** `signupLimit` / `loginLimit` in `routes/auth.js`. In-memory, so per function instance on Vercel; good enough against casual abuse, not a DDoS tool.
+- **Profile questions:** `profile` sub-schema in `models/User.js` and `cleanProfile` in `routes/auth.js`; the shop's `lib/profile.js` lists the same choices.
 
-Run the seed against the production database once, from your own machine, with `MONGODB_URI` pointed at Atlas.
+## References used while building this
 
-## Things to know
-
-**`ADMIN_KEY` is a stopgap, not authentication.** Anyone who has the key has full write access to the catalog. It is fine while you are the only one using the admin. When you add real login, replace `src/middleware/adminAuth.js` and nothing else has to change.
-
-**Cold starts.** The first request after a quiet period takes a second or two while the function boots and connects to Atlas. `src/db.js` caches the connection so subsequent requests reuse it. Do not remove that caching — without it, a busy day exhausts Atlas's connection limit.
-
-**Prices come from the server, always.** `POST /api/orders` ignores any price in the request body and recalculates from the slugs and quantities. A tampered cart cannot buy anything cheaply.
-
----
-
-## Custom print estimator
-
-A second product sitting on the same server: someone brings their own model and gets a price.
-
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/api/custom/options` | Every valid dropdown value, file types, size cap. A partner's UI starts here so it never offers something the engine rejects |
-| POST | `/api/custom/estimate` | Stateless. Nothing saved, nothing emailed — call it on every keystroke |
-| POST | `/api/custom/requests` | Customer wants it made. Recalculates server-side, stores the lead |
-| GET | `/api/custom/requests/:reference` | Customer checks back |
-
-The estimator lives in `src/pricing/customEstimate.js` and is a pure function with 20 tests (`npm run test:estimate`).
-
-**It deliberately over-estimates.** Nobody can price a mesh they have not sliced. Quoting low and asking for more later is the fastest way to lose a customer, so the quote is a range carrying ~18% headroom, presented as a ceiling that usually comes down.
-
-**The file is never uploaded.** Only its name, size and type are sent. Accepting real uploads means storage, virus scanning and a privacy policy, none of which exist yet — the customer emails the model once there is a price they like.
-
-**The mesh path is already in the contract.** Pass `mesh: { volumeCm3 }` instead of `size` and it uses real geometry. When STL parsing is added, the request and response shapes do not change — which matters because other people will have integrated against them by then.
-
-### Partner access
-
-Other print shops can call the estimator with an `x-api-key` issued from the admin. Until `REQUIRE_PARTNER_KEY=true` the endpoint is open. Issue keys first, flip the flag second, or you break your own website while nobody holds a key.
-
-## Payback
-
-`GET /api/admin/payback` answers "is this worth buying". It works out what the shop actually earns per month — real revenue minus what those products cost to make, using the same costing assumptions as everything else — and divides each purchase by it.
-
-With no orders yet the real figure is zero, which is honest rather than useless: pass `assumedMonthlyProfit` and it models your guess instead, flagged as a guess in the response.
-
-Query params: `assumedMonthlyProfit`, `lookbackDays` (default 90), `hypotheticalCost`.
+- Salesforce CPQ price calculation order — the model for the engine
+- Express 4 docs — https://expressjs.com/en/4x/api.html
+- Mongoose 8 docs (middleware, `select:false`) — https://mongoosejs.com/docs/
+- Vercel Express guide — https://vercel.com/guides/using-express-with-vercel
+- MongoDB Atlas free tier — https://www.mongodb.com/pricing
+- OWASP password storage & authentication cheat sheets — https://cheatsheetseries.owasp.org/
+- Bambu Lab A1 build volume (256 × 256 × 256 mm) and AMS lite (4 slots) — https://wiki.bambulab.com/en/a1
+- MakerWorld / Printables / Thingiverse licence terms (for `catalog/ip.js`) — https://makerworld.com/en/terms, https://www.printables.com/terms, https://creativecommons.org/licenses/
+- NPCI UPI deep-link spec (for the shop's pay link) — https://www.npci.org.in/what-we-do/upi/product-overview
+- WhatsApp click-to-chat (`wa.me`) — https://faq.whatsapp.com/5913398998672934
+- Razorpay (future payments) — https://razorpay.com/docs/
