@@ -9,7 +9,7 @@ const catalogRoutes = require('./routes/catalog');
 const quoteRoutes = require('./routes/quote');
 const orderRoutes = require('./routes/orders');
 const customRoutes = require('./routes/custom');
-const authRoutes = require('./routes/auth');
+const { router: authRoutes } = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 
 const app = express();

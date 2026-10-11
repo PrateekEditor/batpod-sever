@@ -95,12 +95,29 @@ router.post('/orders', optionalAuth, async (req, res, next) => {
   }
 });
 
-// GET /api/orders/:reference — lets a customer look up what they ordered
+/**
+ * GET /api/orders/:reference?phone=... — track an order without an account.
+ *
+ * The reference alone is not enough: it is printed on packing slips and
+ * quoted in messages, so anyone who saw one could otherwise read the buyer's
+ * address. The last digits of the phone, or the email, used at checkout must
+ * match too, and what comes back is the tracking view, not the whole order.
+ */
 router.get('/orders/:reference', async (req, res, next) => {
   try {
-    const order = await Order.findOne({ reference: req.params.reference.toUpperCase() }).lean();
-    if (!order) return res.status(404).json({ error: 'No order with that reference.' });
-    res.json(order);
+    const order = await Order.findOne({ reference: String(req.params.reference).toUpperCase().trim() });
+    const phone = String(req.query.phone || '').replace(/\D/g, '');
+    const email = String(req.query.email || '').toLowerCase().trim();
+    const onFile = String((order && order.customer && order.customer.phone) || '').replace(/\D/g, '');
+    const emailOnFile = String((order && order.customer && order.customer.email) || '').toLowerCase();
+    const phoneOk = phone.length >= 4 && onFile.endsWith(phone.slice(-10));
+    const emailOk = email && emailOnFile && email === emailOnFile;
+    // Same answer for "no such order" and "wrong phone", so the endpoint cannot
+    // be used to confirm which references exist.
+    if (!order || !(phoneOk || emailOk)) {
+      return res.status(404).json({ error: 'No order matches that reference and phone or email.' });
+    }
+    res.json(order.toTracking());
   } catch (err) {
     next(err);
   }

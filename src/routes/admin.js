@@ -87,6 +87,27 @@ router.use('/categories', crud(Category, { sort: { sortOrder: 1 }, searchFields:
 router.use('/schedules', crud(DiscountSchedule, { searchFields: ['name'] }));
 router.use('/rules', crud(PriceRule, { sort: { priority: 1 }, searchFields: ['name'] }));
 router.use('/coupons', crud(Coupon, { searchFields: ['code', 'description'] }));
+/**
+ * Order updates go through save() rather than the generic CRUD so the status
+ * history is recorded - findByIdAndUpdate skips the pre-save hook.
+ */
+router.put('/orders/:id', async (req, res, next) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: 'Not found' });
+    const { status, trackingNote, courierRef, notes, channel, channelDetail } = req.body || {};
+    if (status !== undefined) order.status = status;
+    if (trackingNote !== undefined) order.trackingNote = String(trackingNote);
+    if (courierRef !== undefined) order.courierRef = String(courierRef);
+    if (notes !== undefined) order.notes = String(notes);
+    if (channel !== undefined) order.channel = channel;
+    if (channelDetail !== undefined) order.channelDetail = String(channelDetail);
+    await order.save();
+    res.json(order);
+  } catch (err) {
+    next(err);
+  }
+});
 router.use('/orders', crud(Order, { searchFields: ['reference', 'customer.name', 'customer.phone'] }));
 router.use('/purchases', crud(Purchase, { sort: { purchasedOn: -1 }, searchFields: ['name', 'notes'] }));
 router.use('/requests', crud(QuoteRequest, { searchFields: ['reference', 'contact.name', 'contact.email'] }));

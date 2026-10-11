@@ -31,7 +31,7 @@ const UserSchema = new mongoose.Schema(
       type: [String],
       default: [],
       validate: {
-        validator: (v) => v.every((s) => ['biker', 'tabletop', 'daily'].includes(s)),
+        validator: (v) => v.every((s) => ['biker', 'tabletop', 'daily', 'minis'].includes(s)),
         message: 'Interests must be category slugs.',
       },
     },
@@ -40,6 +40,35 @@ const UserSchema = new mongoose.Schema(
       line1: { type: String, default: '' },
       city: { type: String, default: '' },
       pincode: { type: String, default: '' },
+    },
+
+    /**
+     * Optional profile, every field skippable. It exists to make the feed and
+     * the offers relevant, nothing else - a rider who commutes gets phone
+     * mounts, a collector gets minis. None of it is shown to anyone else.
+     */
+    profile: {
+      rides: { type: String, enum: ['', 'commute', 'tour', 'sport', 'no'], default: '' },
+      bikeModel: { type: String, default: '', trim: true },
+      useFor: {
+        type: [String],
+        default: [],
+        validate: { validator: (v) => v.every((s) => ['desk', 'home', 'gifting', 'collecting', 'workshop', 'events'].includes(s)), message: 'Unknown use.' },
+      },
+      contactPref: { type: String, enum: ['', 'whatsapp', 'email', 'none'], default: '' },
+      offersOptIn: { type: Boolean, default: false },
+    },
+
+    /**
+     * What they agreed to, and when. Recorded on the account so the choice
+     * survives a cleared browser, and so the admin can answer "did this
+     * person agree to be emailed" with a date rather than a guess.
+     */
+    consent: {
+      marketing: { type: Boolean, default: false },
+      personalisation: { type: Boolean, default: false },
+      at: { type: Date, default: null },
+      version: { type: String, default: '' },
     },
 
     role: { type: String, enum: ['customer', 'staff'], default: 'customer' },
@@ -69,6 +98,8 @@ UserSchema.methods.toPublic = function () {
     phone: this.phone,
     interests: this.interests,
     address: this.address,
+    profile: this.profile,
+    consent: this.consent,
     createdAt: this.createdAt,
   };
 };

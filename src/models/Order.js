@@ -54,6 +54,15 @@ const OrderSchema = new mongoose.Schema(
       pincode: { type: String, default: '' },
     },
     lines: { type: [OrderLineSchema], default: [] },
+
+    /**
+     * Every status the order has been in, with when. The tracking page draws
+     * its timeline from this; "shipped" on its own is a word, "shipped on
+     * Tuesday at 17:10" is an answer.
+     */
+    statusHistory: { type: [{ status: String, at: Date, _id: false }], default: [] },
+    trackingNote: { type: String, default: '' },
+    courierRef: { type: String, default: '' },
     couponCode: { type: String, default: '' },
     grossSubtotal: Number,
     subtotal: Number,
@@ -65,6 +74,31 @@ const OrderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+OrderSchema.pre('save', function (next) {
+  const last = this.statusHistory[this.statusHistory.length - 1];
+  if (!last || last.status !== this.status) this.statusHistory.push({ status: this.status, at: new Date() });
+  next();
+});
+
+/**
+ * What a customer may see about an order without being signed in: enough to
+ * track it, nothing that identifies the buyer beyond what they already know.
+ */
+OrderSchema.methods.toTracking = function () {
+  return {
+    reference: this.reference,
+    status: this.status,
+    statusHistory: this.statusHistory,
+    trackingNote: this.trackingNote,
+    courierRef: this.courierRef,
+    channel: this.channel,
+    lines: this.lines.map((l) => ({ name: l.name, quantity: l.quantity, slug: l.slug })),
+    total: this.total,
+    createdAt: this.createdAt,
+    updatedAt: this.updatedAt,
+  };
+};
 
 OrderSchema.statics.nextReference = function () {
   const d = new Date();
