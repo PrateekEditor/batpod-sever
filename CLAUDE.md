@@ -39,7 +39,9 @@ The owner runs commands in a numbered terminal (1 = server, 2 = shop, 3 = admin,
 7. **The seed is destructive for catalog collections.** Run it after changing `seed-data.js` and tell the owner to run it before pushing when the DB shape changes. It cannot run from a sandbox that lacks DNS SRV lookup (`querySrv ECONNREFUSED`) — the owner runs it in terminal 4.
 8. **Mirror lists exist in the clients.** Order statuses, interest slugs (`biker, tabletop, daily, minis`), profile choices (`rides`, `useFor`, `contactPref`), password rules. When you change one here, change `batpod-shop/lib/profile.js`, `batpod-shop/components/OrderTimeline.jsx` and `batpod-admin/src/pages/Orders.jsx`.
 9. **The planner assumes the A1:** 256 mm bed, 4 AMS slots, one plate at a time. Constants at the top of `printing/planner.js`.
-10. **CORS**: `ALLOWED_ORIGINS` blank allows everything, which is only right locally. Production must list the shop and admin origins, including a `github.io` origin if GitHub Pages is used.
+10. **Photo uploads** go through `express.json({ limit: '6mb' })` mounted on `/api/admin/products/:id/images` *before* the global 1 MB parser (body-parser skips an already-parsed body). Keep that order.
+11. **`/api/pincode` is above the DB gate** like `/api/status`; it must not import a model.
+12. **CORS**: `ALLOWED_ORIGINS` blank allows everything, which is only right locally. Production must list the shop and admin origins, including a `github.io` origin if GitHub Pages is used.
 
 ## Where to add things
 

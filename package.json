@@ -9,7 +9,7 @@
     "seed": "node src/seed.js",
     "test:pricing": "node src/pricing/engine.test.js",
     "test:catalog": "node src/pricing/catalog.test.js",
-    "test": "npm run test:pricing && npm run test:catalog && npm run test:estimate && npm run test:recommend && npm run test:planner && npm run test:ip && npm run test:status && npm run test:auth",
+    "test": "npm run test:pricing && npm run test:catalog && npm run test:estimate && npm run test:recommend && npm run test:planner && npm run test:ip && npm run test:status && npm run test:auth && npm run test:pincode",
     "test:estimate": "node src/pricing/customEstimate.test.js",
     "dev:fast": "node --watch src/dev.js",
     "start": "node src/dev.js",
@@ -17,7 +17,8 @@
     "test:planner": "node src/printing/planner.test.js",
     "test:ip": "node src/catalog/ip.test.js",
     "test:status": "node src/shopStatus.test.js",
-    "test:auth": "node src/routes/auth.test.js"
+    "test:auth": "node src/routes/auth.test.js",
+    "test:pincode": "node src/pincode.test.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

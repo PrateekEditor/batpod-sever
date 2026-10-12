@@ -11,9 +11,14 @@ const orderRoutes = require('./routes/orders');
 const customRoutes = require('./routes/custom');
 const { router: authRoutes } = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const pincodeRoutes = require('./routes/pincode');
+const imageRoutes = require('./routes/images');
+const adminImageRoutes = require('./routes/adminImages');
 
 const app = express();
 
+// Photo uploads carry a compressed image as a data URL; everything else is small.
+app.use('/api/admin/products/:id/images', express.json({ limit: '6mb' }));
 app.use(express.json({ limit: '1mb' }));
 
 /**
@@ -85,6 +90,10 @@ app.get('/api/status', async (_req, res) => {
   }
 });
 
+// Pincode lookups need no database — mounted above the gate so the checkout
+// form keeps working even when Atlas is slow.
+app.use('/api', pincodeRoutes);
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'batpod-server', database: dbState(), time: new Date().toISOString() });
 });
@@ -101,6 +110,7 @@ app.use(async (_req, res, next) => {
 });
 
 app.use('/api', catalogRoutes);
+app.use('/api', imageRoutes);
 // Quotes and orders are refused while the shop is paused or in maintenance.
 app.use('/api/quote', requireOpen);
 app.use('/api/orders', requireOpen);
@@ -108,6 +118,7 @@ app.use('/api', quoteRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', customRoutes);
 app.use('/api', authRoutes);
+app.use('/api/admin/products/:id/images', adminAuth, adminImageRoutes);
 app.use('/api/admin', adminAuth, adminRoutes);
 
 app.use((req, res) => {

@@ -38,6 +38,7 @@ const UserSchema = new mongoose.Schema(
 
     address: {
       line1: { type: String, default: '' },
+      state: { type: String, default: '' },
       city: { type: String, default: '' },
       pincode: { type: String, default: '' },
     },

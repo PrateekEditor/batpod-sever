@@ -140,7 +140,8 @@ router.patch('/auth/me', requireAuth, async (req, res, next) => {
       req.user.address = {
         line1: String(address.line1 || ''),
         city: String(address.city || ''),
-        pincode: String(address.pincode || ''),
+        state: String(address.state || '').slice(0, 60),
+        pincode: String(address.pincode || '').replace(/\D/g, '').slice(0, 6),
       };
     }
     if (interests !== undefined) req.user.interests = cleanInterests(interests);

@@ -83,6 +83,7 @@ Eight suites, no database needed, ~2 seconds:
 | `test:ip` | 22 | Rights classification; only `licensed-commercial` / `own-design` are sellable |
 | `test:status` | 7 | Shop status modes, message caps, `requireOpen` refusal |
 | `test:auth` | 8 | Password rules, profile cleaning, consent stamping |
+| `test:pincode` | 11 | Pincode parsing and cache, courier zones from Pune, Sunday-skipping delivery windows |
 
 Each file is `node src/.../x.test.js` — a `check(name, fn)` helper, `assert`, a summary line. Add a check by copying one.
 
@@ -122,6 +123,8 @@ All JSON. Prices in rupees as numbers. Errors are `{ error: "…" }` with a sens
 | POST | `/api/orders` | `{ customer, lines, couponCode, channel, channelDetail }` → `{ reference, total, status }`. Prices are recomputed server-side; the client's numbers are ignored. |
 | GET | `/api/orders/:reference?phone=` or `?email=` | Tracking. The phone tail (last 4+ digits) or the exact email on the order is required; a reference alone returns 404. |
 | GET/POST | `/api/custom/options`, `/api/custom/estimate`, `/api/custom/requests` | Custom print flow |
+| GET | `/api/pincode/:pin?production=1` | City, state and a delivery window from the India Post directory (`src/pincode.js`); no DB, mounted above the gate |
+| GET | `/api/images/:id` | A product photo's bytes, cached for a year |
 
 `/api/quote` and `/api/orders` are behind `requireOpen`: when the shop is paused or in maintenance they return 503 with the status attached, and the shop shows the notice instead of a cart.
 
@@ -152,6 +155,7 @@ Generic CRUD (`GET /`, `GET /:id`, `POST /`, `PUT /:id`, `DELETE /:id`, `?q=` se
 | `GET /payback` | Printer payback from purchases + margins |
 | `GET / PUT /status` | The shop switch: `open`, `paused`, `maintenance`, with message and optional `until` |
 | `POST /generate-key` | Partner API keys |
+| `POST/PUT/DELETE /products/:id/images` | Product photos: upload a compressed data URL (≤1.5 MB), reorder, remove. Stored in `ProductImage`, referenced from `product.images[]` as `/api/images/<id>` |
 
 ## The pricing engine
 
@@ -175,6 +179,14 @@ An order's life is `draft → placed → printing → shipped → delivered` (or
 Orders record a `channel` (`website`, `instagram`, `youtube`, `whatsapp`, `bike-meet`, `amazon`, `etsy`, `partner-api`, `other`). The shop captures `?from=youtube` on arrival and sends it at checkout; marketplace channels are flagged priority in the admin because they carry dispatch deadlines.
 
 There is no payment gateway yet. Orders are confirmed over WhatsApp and settled by UPI; the shop builds both links from `lib/site.js`. When a gateway is added (Razorpay is the obvious one for India), the place to hook it is a `POST /api/orders/:reference/pay` that creates the gateway order and a webhook that moves status `draft → placed`.
+
+## Product photos
+
+There is no file storage on Vercel, so photos live in Atlas: the admin resizes to 1200 px and compresses to WebP in the browser (60–150 KB each), posts a data URL, and the server stores the bytes in `ProductImage` and appends `/api/images/<id>` to `product.images`. Catalog responses carry only the URLs, so listings stay small; `GET /api/images/:id` serves with `Cache-Control: immutable`. The shop prefixes the API host (`imageSrc()` in `lib/api.js`). Eight photos per product at most. If photos ever outgrow this, move the bytes to Cloudinary or R2 and keep the same URL shape.
+
+## Pincode and delivery window
+
+`src/pincode.js` looks pincodes up on India Post's free directory API (`api.postalpincode.in`), caches for a day, and turns the state into a courier zone from Pune (Maharashtra 1–2 days … north-east 7–10). `estimate()` adds production days and skips Sundays. The checkout form fills city and state from it and shows the window; the same numbers are what to quote on WhatsApp.
 
 ## Design rights (what may be sold)
 

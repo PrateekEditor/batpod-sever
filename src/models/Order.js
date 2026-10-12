@@ -51,6 +51,7 @@ const OrderSchema = new mongoose.Schema(
       email: { type: String, default: '' },
       address: { type: String, default: '' },
       city: { type: String, default: '' },
+      state: { type: String, default: '' },
       pincode: { type: String, default: '' },
     },
     lines: { type: [OrderLineSchema], default: [] },
