@@ -2,9 +2,9 @@
 
 **Live API:** https://batpod-sever.vercel.app (the typo in the hostname is historical; leave it)
 **Health check:** https://batpod-sever.vercel.app/api/health
-**Repo:** https://github.com/PrateekPatelBluvium9878/batpod-sever
+**Repo:** https://github.com/PrateekEditor/batpod-sever
 
-The API and the pricing engine behind [Batpod Labs](https://batpodshop.vercel.app), a 3D-printing shop in Pune running on a Bambu Lab A1 Combo. The shop ([batpod-shop](https://github.com/PrateekPatelBluvium9878/Batpod-shop)) and the admin ([batpod-admin](https://github.com/PrateekPatelBluvium9878/batpod-admin)) both talk to this and nothing else: one database, one price calculation, one source of truth.
+The API and the pricing engine behind [Batpod Labs](https://batpodshop.vercel.app), a 3D-printing shop in Pune running on a Bambu Lab A1 Combo. The shop ([batpod-shop](https://github.com/PrateekEditor/Batpod-shop)) and the admin ([batpod-admin](https://github.com/PrateekEditor/batpod-admin)) both talk to this and nothing else: one database, one price calculation, one source of truth.
 
 If you are an AI assistant working in this repo, read `CLAUDE.md` first — it has the conventions and the gotchas.
 

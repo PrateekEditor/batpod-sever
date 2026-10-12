@@ -58,11 +58,11 @@ The owner runs commands in a numbered terminal (1 = server, 2 = shop, 3 = admin,
 
 ## Git
 
-The owner commits are authored as `Prateek Patel <prateek.patel@bluvium.com>`. Assistants commit; the owner pushes. Commit messages: a short title, then a paragraph on *why*, then attribution lines if the tooling asks for them.
+The owner commits are authored as `Prateek Patel <prateekpatel9878@gmail.com>`. Assistants commit; the owner pushes. Commit messages: a short title, then a paragraph on *why*, then attribution lines if the tooling asks for them.
 
 ## Related repos
 
-- Shop: https://github.com/PrateekPatelBluvium9878/Batpod-shop → https://batpodshop.vercel.app
-- Admin: https://github.com/PrateekPatelBluvium9878/batpod-admin
-- Print calculator (standalone): https://github.com/PrateekPatelBluvium9878/batpod-printcalc
+- Shop: https://github.com/PrateekEditor/Batpod-shop → https://batpodshop.vercel.app
+- Admin: https://github.com/PrateekEditor/batpod-admin
+- Print calculator (standalone): https://github.com/PrateekEditor/batpod-printcalc
 - Workspace launcher: `~/Downloads/batpod/package.json` (`npm run server|shop|admin|printcalc|dev|seed|test`)
